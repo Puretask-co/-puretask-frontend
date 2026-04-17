@@ -12,6 +12,7 @@ const BACKEND_PORT = Number(process.env.E2E_BACKEND_PORT || '4000');
 
 const backendDirCandidates = [
   process.env.E2E_BACKEND_WORKDIR,
+  path.resolve(process.cwd(), '..'),
   path.resolve(process.cwd(), '../puretask-backend'),
   path.resolve(process.cwd(), 'puretask-backend'),
 ].filter((candidate): candidate is string => Boolean(candidate && candidate.trim()));
