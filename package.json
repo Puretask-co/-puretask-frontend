@@ -18,6 +18,7 @@
     "test:e2e:ui": "playwright test --ui",
     "test:fullstack:prepare": "node scripts/prepare-fullstack-test-env.js",
     "test:fullstack:seed-users": "node scripts/ensure-e2e-users.js",
+    "verify:fullstack": "npm run test:fullstack:prepare && npm run test:api && npm run test:e2e:smoke",
     "test:fullstack:verify": "npm run test:fullstack:prepare && npm run test:api && npm run test:e2e:smoke",
     "audit:a11y": "node scripts/audit-accessibility.js",
     "audit:perf": "node scripts/audit-performance.js",

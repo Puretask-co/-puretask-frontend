@@ -92,9 +92,14 @@ function BookingDetailsContent() {
     );
   }
 
-  const booking = data.booking as typeof data.booking & { cleaner?: { name?: string; rating?: number; reviews_count?: number } };
-  const canCancel = ['pending', 'accepted', 'scheduled'].includes(booking.status);
-  const canApproveOrDispute = booking.status === 'awaiting_approval'; // canonical: only from awaiting_approval
+  const booking = data.booking as (typeof data.booking & {
+    status: typeof data.booking.status | 'awaiting_approval' | 'scheduled' | 'on_my_way';
+    cleaner?: { name?: string; rating?: number; reviews_count?: number };
+  });
+  const bookingStatus = booking.status as string;
+  const canOpenLiveView = ['in_progress', 'scheduled', 'on_my_way', 'accepted'].includes(bookingStatus);
+  const canCancel = ['pending', 'accepted', 'scheduled'].includes(bookingStatus);
+  const canApproveOrDispute = bookingStatus === 'awaiting_approval'; // canonical: only from awaiting_approval
 
   const handleApprove = async () => {
     if (!bookingId || approving) return;
@@ -112,6 +117,39 @@ function BookingDetailsContent() {
     } finally {
       setApproving(false);
     }
+  };
+
+  const handleCancelClick = () => {
+    setShowCancelConfirm(true);
+  };
+
+  const handleCancelDismiss = () => {
+    if (isCancelling) return;
+    setShowCancelConfirm(false);
+    setCancelReason('');
+  };
+
+  const handleCancelConfirm = () => {
+    if (isCancelling) return;
+    cancelBooking(
+      {
+        bookingId,
+        reason: cancelReason.trim() || undefined,
+      },
+      {
+        onSuccess: () => {
+          setShowCancelConfirm(false);
+          setCancelReason('');
+          showToast('Booking cancelled successfully.', 'success');
+          queryClient.invalidateQueries({ queryKey: ['booking', bookingId] });
+          queryClient.invalidateQueries({ queryKey: ['bookings'] });
+        },
+        onError: (err: unknown) => {
+          const message = err instanceof Error ? err.message : 'Failed to cancel booking';
+          showToast(message, 'error');
+        },
+      }
+    );
   };
 
   const showHeldCredits = booking && isEscrowHeld(booking.status);
@@ -147,7 +185,7 @@ function BookingDetailsContent() {
           )}
 
           {/* In progress: timer + held credits (trust banner) */}
-          {booking && (booking.status === 'in_progress' || booking.status === 'on_my_way') && showHeldCredits && (
+          {booking && (bookingStatus === 'in_progress' || bookingStatus === 'on_my_way') && showHeldCredits && (
             <div className="mb-6 flex flex-col sm:flex-row gap-3">
               <TrustBanner
                 variant="credits-held"
@@ -177,7 +215,7 @@ function BookingDetailsContent() {
                   <Card>
                     <CardContent className="pt-6">
                       <div className="flex flex-wrap gap-2">
-                        {(booking.status === 'in_progress' || booking.status === 'scheduled' || booking.status === 'on_my_way' || booking.status === 'accepted') && (
+                        {canOpenLiveView && (
                           <Button
                             variant="primary"
                             size="sm"
@@ -296,7 +334,7 @@ function BookingDetailsContent() {
 
                   {/* Quick Actions */}
                   <div className="flex flex-wrap gap-2 mt-6 pt-4 border-t">
-                    {(booking.status === 'in_progress' || booking.status === 'scheduled' || booking.status === 'on_my_way' || booking.status === 'accepted') && (
+                    {canOpenLiveView && (
                       <Button
                         variant="primary"
                         size="sm"

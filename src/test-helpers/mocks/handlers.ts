@@ -99,7 +99,7 @@ export const handlers = [
   }),
 
   // Credits ledger (Trust API shape) — used for ledger lifecycle tests
-  http.get(`${BASE_URL}/api/credits/ledger`, () => {Draw the true system architecture diagram
+  http.get(`${BASE_URL}/api/credits/ledger`, () => {
     return HttpResponse.json({
       entries: [
         {
