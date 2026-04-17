@@ -16,7 +16,8 @@ jobs:
           node-version: '20'
       - run: npm ci
       - run: npm run build
-      - run: npm run start &
+      - run: npm run start:ci &
+      - run: npx wait-on http://localhost:3001
       - uses: treosh/lighthouse-ci-action@v10
         with:
           urls: |

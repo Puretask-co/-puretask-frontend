@@ -3,6 +3,11 @@
 
 import { defineConfig, devices } from '@playwright/test';
 
+const FRONTEND_BASE_URL =
+  process.env.E2E_BASE_URL || process.env.FRONTEND_BASE_URL || 'http://localhost:3001';
+const FRONTEND_PORT = Number(process.env.E2E_FRONTEND_PORT || '3001');
+const BACKEND_PORT = Number(process.env.E2E_BACKEND_PORT || '4000');
+
 export default defineConfig({
   testDir: './tests/e2e',
   fullyParallel: true,
@@ -12,7 +17,7 @@ export default defineConfig({
   reporter: 'html',
   
   use: {
-    baseURL: 'http://localhost:3001',
+    baseURL: FRONTEND_BASE_URL,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
@@ -45,13 +50,15 @@ export default defineConfig({
   webServer: [
     {
       command: 'cd ../puretask-backend && npm run dev',
-      port: 4000,
+      port: BACKEND_PORT,
       reuseExistingServer: !process.env.CI,
+      timeout: 120000,
     },
     {
       command: 'npm run dev',
-      port: 3001,
+      port: FRONTEND_PORT,
       reuseExistingServer: !process.env.CI,
+      timeout: 120000,
     },
   ],
 });
