@@ -499,7 +499,7 @@ function BookingDetailsContent() {
               </Card>
             </div>
           </div>
-        </div>
+        </PageShell>
       </main>
       <Footer />
     </div>

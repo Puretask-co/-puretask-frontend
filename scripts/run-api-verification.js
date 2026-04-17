@@ -163,14 +163,16 @@ async function run() {
   // 4. Billing
   try {
     const { res, body, durationMs } = await fetchJson(`${API_BASE}/api/billing/invoices`);
-    const ok = (res.ok && Array.isArray(body?.invoices)) || res.status === 500;
+    const ok = res.ok && Array.isArray(body?.invoices);
     log(
       'GET /api/billing/invoices',
       ok,
       res.status,
       durationMs,
-      ok ? (res.status === 500 ? 'Endpoint reachable; backend returned server error for this dataset' : `invoices=${body.invoices.length}`) : (body?.message || 'Invalid shape'),
-      !ok ? 'Response must be { invoices: Invoice[] }' : ''
+      ok ? `invoices=${body.invoices.length}` : (body?.message || 'Invalid shape'),
+      !ok
+        ? 'Expected HTTP 200 with response shape { invoices: Invoice[] }. Any 5xx indicates backend regression.'
+        : ''
     );
   } catch (e) {
     log('GET /api/billing/invoices', false, 0, 0, e.message);

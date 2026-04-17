@@ -6,8 +6,13 @@ on:
   pull_request:
     branches: [main, develop]
 
+concurrency:
+  group: frontend-ci-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   NODE_VERSION: "20"
+  BACKEND_REPO: PURETASK/puretask-backend
 
 jobs:
   lint:
@@ -62,10 +67,19 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: "npm"
       - run: npm ci
-      - name: Start backend from sibling repo
+      - name: Checkout backend repo
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.BACKEND_REPO }}
+          path: puretask-backend
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+          cache-dependency-path: puretask-backend/package-lock.json
+      - name: Setup backend + start server
+        working-directory: puretask-backend
         run: |
-          git clone https://github.com/PURETASK/puretask-backend.git ../puretask-backend
-          cd ../puretask-backend
           npm ci
           cat > .env <<'EOF'
           NODE_ENV=development
@@ -104,11 +118,96 @@ jobs:
           API_BASE: http://localhost:4000
           TEST_EMAIL: client@test.com
           TEST_PASSWORD: TestPass123!
+      - name: Cleanup deterministic E2E users
+        if: always()
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/puretask_test?sslmode=disable
+        working-directory: puretask-backend
+        run: npm run reset:e2e:users
+
+  e2e:
+    name: Playwright Fullstack Smoke
+    runs-on: ubuntu-latest
+    needs: [contract-gate]
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: puretask_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+      - run: npm ci
+      - name: Install Playwright browser dependencies
+        run: npx playwright install --with-deps chromium
+      - name: Checkout backend repo
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.BACKEND_REPO }}
+          path: puretask-backend
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+          cache-dependency-path: puretask-backend/package-lock.json
+      - name: Setup backend schema + fixtures
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/puretask_test?sslmode=disable
+          E2E_CLIENT_EMAIL: client@test.com
+          E2E_CLIENT_PASSWORD: TestPass123!
+          E2E_CLEANER_EMAIL: cleaner@test.com
+          E2E_CLEANER_PASSWORD: TestPass123!
+          E2E_ADMIN_EMAIL: admin@test.com
+          E2E_ADMIN_PASSWORD: TestPass123!
+        working-directory: puretask-backend
+        run: |
+          npm ci
+          npm run db:setup:test
+          npm run seed:e2e:users
+      - name: Run Playwright smoke checks
+        env:
+          E2E_BASE_URL: http://localhost:3001
+          E2E_FRONTEND_PORT: "3001"
+          E2E_BACKEND_PORT: "4000"
+          E2E_BACKEND_WORKDIR: ${{ github.workspace }}/puretask-backend
+          NEXT_PUBLIC_API_BASE_URL: http://localhost:4000
+          NEXT_PUBLIC_API_URL: http://localhost:4000
+          NEXT_PUBLIC_BASE_URL: http://localhost:3001
+          NEXT_PUBLIC_WS_URL: ws://localhost:4000
+          TEST_EMAIL: client@test.com
+          TEST_PASSWORD: TestPass123!
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/puretask_test?sslmode=disable
+        run: npm run test:e2e:smoke
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-smoke-report
+          path: |
+            playwright-report
+            test-results
+      - name: Cleanup deterministic E2E users
+        if: always()
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/puretask_test?sslmode=disable
+        working-directory: puretask-backend
+        run: npm run reset:e2e:users
 
   build:
     name: Build
     runs-on: ubuntu-latest
-    needs: [lint, test, contract-gate]
+    needs: [lint, test, contract-gate, e2e]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

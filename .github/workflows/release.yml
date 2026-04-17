@@ -12,6 +12,10 @@ on:
           - production
           - staging
 
+concurrency:
+  group: frontend-release-${{ github.ref }}-${{ inputs.environment }}
+  cancel-in-progress: false
+
 jobs:
   release:
     name: Deploy frontend via Vercel

@@ -11,6 +11,16 @@ export type ApiError = {
   details?: unknown;
 };
 
+const REQUEST_ID_HEADER = 'x-request-id';
+const CORRELATION_ID_HEADER = 'x-correlation-id';
+
+function createRequestId(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return `fe-${crypto.randomUUID()}`;
+  }
+  return `fe-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
 function getApiBaseUrl() {
   return (
     process.env.NEXT_PUBLIC_API_BASE_URL ||
@@ -49,9 +59,12 @@ async function parseError(res: Response): Promise<ApiError> {
 }
 
 function buildHeaders(extra?: Record<string, string>): Record<string, string> {
+  const requestId = createRequestId();
   return {
     'Content-Type': 'application/json',
     Accept: 'application/json',
+    [REQUEST_ID_HEADER]: requestId,
+    [CORRELATION_ID_HEADER]: requestId,
     ...getAuthHeaders(),
     ...(extra || {}),
   };
@@ -60,7 +73,14 @@ function buildHeaders(extra?: Record<string, string>): Record<string, string> {
 export async function apiGet<T>(path: string, init?: RequestInit): Promise<T> {
   const base = getApiBaseUrl();
   const url = base ? `${base}${path}` : path;
-  const headers = { Accept: 'application/json', ...getAuthHeaders(), ...(init?.headers || {}) };
+  const requestId = createRequestId();
+  const headers = {
+    Accept: 'application/json',
+    [REQUEST_ID_HEADER]: requestId,
+    [CORRELATION_ID_HEADER]: requestId,
+    ...getAuthHeaders(),
+    ...(init?.headers || {}),
+  };
 
   const res = await fetch(url, {
     method: 'GET',
@@ -136,7 +156,14 @@ export async function apiPatch<TReq, TRes>(
 export async function apiDelete<T>(path: string, init?: RequestInit): Promise<T> {
   const base = getApiBaseUrl();
   const url = base ? `${base}${path}` : path;
-  const headers = { Accept: 'application/json', ...getAuthHeaders(), ...(init?.headers || {}) };
+  const requestId = createRequestId();
+  const headers = {
+    Accept: 'application/json',
+    [REQUEST_ID_HEADER]: requestId,
+    [CORRELATION_ID_HEADER]: requestId,
+    ...getAuthHeaders(),
+    ...(init?.headers || {}),
+  };
 
   const res = await fetch(url, {
     method: 'DELETE',
