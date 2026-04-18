@@ -15,7 +15,10 @@ const panelVariants = {
   visible: { opacity: 1, scale: 1, y: 0 },
   exit: { opacity: 0, scale: 0.98, y: 4 },
 };
-const transition = { duration: 0.2, ease: [0.16, 1, 0.3, 1] };
+const transition = {
+  duration: 0.2,
+  ease: [0.16, 1, 0.3, 1] as [number, number, number, number],
+};
 
 interface ModalProps {
   isOpen: boolean;

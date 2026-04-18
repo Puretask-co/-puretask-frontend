@@ -50,9 +50,24 @@ function LiveTrustContent() {
     postEvent.mutate({ type, source: 'device' });
   };
 
+  const postEventStatus =
+    postEvent.error &&
+    typeof postEvent.error === 'object' &&
+    'status' in postEvent.error &&
+    typeof (postEvent.error as { status?: unknown }).status === 'number'
+      ? ((postEvent.error as { status: number }).status as ApiError['status'])
+      : undefined;
+  const apiError =
+    postEvent.error &&
+    typeof postEvent.error === 'object' &&
+    'message' in postEvent.error &&
+    typeof (postEvent.error as { message?: unknown }).message === 'string'
+      ? ((postEvent.error as { message: string }) as ApiError)
+      : undefined;
+
   const is501 =
     postEvent.isError &&
-    (postEvent.error as ApiError)?.status === 501 &&
+    postEventStatus === 501 &&
     (lastActionType === 'check_in' || lastActionType === 'check_out');
 
   const data = liveQ.data;
@@ -307,7 +322,7 @@ function LiveTrustContent() {
                 {postEvent.isPending && <p className="mt-2 text-sm text-gray-500">Posting…</p>}
                 {postEvent.isError && !is501 && (
                   <p className="mt-2 text-sm text-red-600">
-                    {(postEvent.error as ApiError)?.message ?? 'Failed to post event.'}
+                    {apiError?.message ?? 'Failed to post event.'}
                   </p>
                 )}
               </CardContent>

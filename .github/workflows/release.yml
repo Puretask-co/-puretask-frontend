@@ -1,0 +1,112 @@
+name: Frontend Release Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target environment"
+        required: true
+        default: "production"
+        type: choice
+        options:
+          - production
+          - staging
+
+concurrency:
+  group: frontend-release-${{ github.ref }}-${{ inputs.environment }}
+  cancel-in-progress: false
+
+jobs:
+  preflight:
+    name: Validate deploy secrets
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - name: Validate required secrets
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          NEXT_PUBLIC_API_BASE_URL: ${{ secrets.NEXT_PUBLIC_API_BASE_URL }}
+          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
+          NEXT_PUBLIC_BASE_URL: ${{ secrets.NEXT_PUBLIC_BASE_URL }}
+          NEXT_PUBLIC_WS_URL: ${{ secrets.NEXT_PUBLIC_WS_URL }}
+          NEXT_PUBLIC_STRIPE_PUBLIC_KEY: ${{ secrets.NEXT_PUBLIC_STRIPE_PUBLIC_KEY }}
+        run: |
+          missing=0
+          for key in \
+            VERCEL_TOKEN \
+            VERCEL_ORG_ID \
+            VERCEL_PROJECT_ID \
+            NEXT_PUBLIC_API_BASE_URL \
+            NEXT_PUBLIC_API_URL \
+            NEXT_PUBLIC_BASE_URL \
+            NEXT_PUBLIC_WS_URL \
+            NEXT_PUBLIC_STRIPE_PUBLIC_KEY; do
+            if [ -z "${!key}" ]; then
+              echo "Missing required secret: $key"
+              missing=1
+            fi
+          done
+          if [ "$missing" -ne 0 ]; then
+            exit 1
+          fi
+
+  release:
+    name: Deploy frontend via Vercel
+    needs: [preflight]
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+        env:
+          NEXT_PUBLIC_API_BASE_URL: ${{ secrets.NEXT_PUBLIC_API_BASE_URL }}
+          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
+          NEXT_PUBLIC_BASE_URL: ${{ secrets.NEXT_PUBLIC_BASE_URL }}
+          NEXT_PUBLIC_WS_URL: ${{ secrets.NEXT_PUBLIC_WS_URL }}
+          NEXT_PUBLIC_STRIPE_PUBLIC_KEY: ${{ secrets.NEXT_PUBLIC_STRIPE_PUBLIC_KEY }}
+
+      - name: Deploy with Vercel CLI
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          npm install -g vercel@latest
+          vercel pull --yes --environment=${{ inputs.environment }} --token="$VERCEL_TOKEN"
+          vercel build --token="$VERCEL_TOKEN"
+          if [ "${{ inputs.environment }}" = "production" ]; then
+            vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN"
+          else
+            vercel deploy --prebuilt --token="$VERCEL_TOKEN"
+          fi
+      - name: Verify deployment health
+        env:
+          FRONTEND_HEALTHCHECK_URL: ${{ secrets.FRONTEND_HEALTHCHECK_URL }}
+        run: |
+          if [ -z "${FRONTEND_HEALTHCHECK_URL}" ]; then
+            echo "FRONTEND_HEALTHCHECK_URL not configured; skipping health probe."
+            exit 0
+          fi
+          curl -fsS "${FRONTEND_HEALTHCHECK_URL}" > /dev/null
+
+      - name: Run synthetic smoke probe
+        env:
+          FRONTEND_SMOKE_URL: ${{ secrets.FRONTEND_SMOKE_URL || secrets.FRONTEND_HEALTHCHECK_URL }}
+        run: |
+          if [ -z "${FRONTEND_SMOKE_URL}" ]; then
+            echo "FRONTEND_SMOKE_URL not configured; skipping synthetic smoke probe."
+            exit 0
+          fi
+          curl -fsS "${FRONTEND_SMOKE_URL}" > /dev/null

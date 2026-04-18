@@ -248,160 +248,162 @@ function BookingPageContent() {
                             })
                           }
                         />
-                  )}
-                  {step === 2 && !holidayLoading && selectedHoliday && (
-                    <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-                      <div className="font-semibold">Federal Holiday</div>
-                      <div>
-                        Cleaner availability may be limited today. Some cleaners may charge higher holiday
-                        rates. All pricing is shown upfront.
-                      </div>
-                      {selectedHoliday.support_limited && (
-                        <div className="mt-2">
-                          Holiday support hours may be limited. Disputes are reviewed the next business day.
-                        </div>
-                      )}
-                      <div className="mt-2">
-                        PureTask does not guarantee cleaner availability on federal holidays.
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Step 3: Address */}
-                    {step === 3 && (
-                      <BookingStepContent key={3} step={3} direction={stepDirection.current}>
-                    <div className="space-y-4">
-                      <AddressAutocompletePlaceholder
-                        label="Street Address"
-                        value={bookingData.address}
-                        onChange={(address) =>
-                          setBookingData({ ...bookingData, address })
-                        }
-                        placeholder="123 Main St"
-                        required
-                      />
-                      <Input
-                        label="Apt, Suite, etc. (Optional)"
-                        type="text"
-                        inputMode="text"
-                        autoComplete="address-line2"
-                        value={bookingData.address_line_2}
-                        onChange={(e) =>
-                          setBookingData({ ...bookingData, address_line_2: e.target.value })
-                        }
-                        placeholder="Apt 4B"
-                      />
-                      <div className="grid grid-cols-2 gap-4">
-                        <Input
-                          label="City"
-                          type="text"
-                          inputMode="text"
-                          autoComplete="address-level2"
-                          value={bookingData.city}
-                          onChange={(e) =>
-                            setBookingData({ ...bookingData, city: e.target.value })
-                          }
-                          required
-                        />
-                        <Input
-                          label="State"
-                          type="text"
-                          inputMode="text"
-                          autoComplete="address-level1"
-                          value={bookingData.state}
-                          onChange={(e) =>
-                            setBookingData({ ...bookingData, state: e.target.value })
-                          }
-                          placeholder="NY"
-                          required
-                        />
-                      </div>
-                      <Input
-                        label="ZIP Code"
-                        type="text"
-                        inputMode="numeric"
-                        pattern="[0-9]*"
-                        autoComplete="postal-code"
-                        value={bookingData.zip_code}
-                        onChange={(e) =>
-                          setBookingData({ ...bookingData, zip_code: e.target.value })
-                        }
-                        placeholder="10001"
-                        required
-                      />
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Special Instructions (Optional)
-                        </label>
-                        <textarea
-                          value={bookingData.special_instructions}
-                          onChange={(e) =>
-                            setBookingData({
-                              ...bookingData,
-                              special_instructions: e.target.value,
-                            })
-                          }
-                          placeholder="Gate code, parking instructions, pet info, etc."
-                          rows={4}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 min-h-[44px] text-base"
-                          autoComplete="off"
-                        />
-                      </div>
-                    </div>
+                        {step === 2 && !holidayLoading && selectedHoliday && (
+                          <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+                            <div className="font-semibold">Federal Holiday</div>
+                            <div>
+                              Cleaner availability may be limited today. Some cleaners may charge higher holiday
+                              rates. All pricing is shown upfront.
+                            </div>
+                            {selectedHoliday.support_limited && (
+                              <div className="mt-2">
+                                Holiday support hours may be limited. Disputes are reviewed the next business day.
+                              </div>
+                            )}
+                            <div className="mt-2">
+                              PureTask does not guarantee cleaner availability on federal holidays.
+                            </div>
+                          </div>
+                        )}
                       </BookingStepContent>
                     )}
 
-                  {/* Step 4: Review */}
+                    {/* Step 3: Address */}
+                    {step === 3 && (
+                      <BookingStepContent key={3} step={3} direction={stepDirection.current}>
+                        <div className="space-y-4">
+                          <AddressAutocompletePlaceholder
+                            label="Street Address"
+                            value={bookingData.address}
+                            onChange={(address) =>
+                              setBookingData({ ...bookingData, address })
+                            }
+                            placeholder="123 Main St"
+                            required
+                          />
+                          <Input
+                            label="Apt, Suite, etc. (Optional)"
+                            type="text"
+                            inputMode="text"
+                            autoComplete="address-line2"
+                            value={bookingData.address_line_2}
+                            onChange={(e) =>
+                              setBookingData({ ...bookingData, address_line_2: e.target.value })
+                            }
+                            placeholder="Apt 4B"
+                          />
+                          <div className="grid grid-cols-2 gap-4">
+                            <Input
+                              label="City"
+                              type="text"
+                              inputMode="text"
+                              autoComplete="address-level2"
+                              value={bookingData.city}
+                              onChange={(e) =>
+                                setBookingData({ ...bookingData, city: e.target.value })
+                              }
+                              required
+                            />
+                            <Input
+                              label="State"
+                              type="text"
+                              inputMode="text"
+                              autoComplete="address-level1"
+                              value={bookingData.state}
+                              onChange={(e) =>
+                                setBookingData({ ...bookingData, state: e.target.value })
+                              }
+                              placeholder="NY"
+                              required
+                            />
+                          </div>
+                          <Input
+                            label="ZIP Code"
+                            type="text"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
+                            autoComplete="postal-code"
+                            value={bookingData.zip_code}
+                            onChange={(e) =>
+                              setBookingData({ ...bookingData, zip_code: e.target.value })
+                            }
+                            placeholder="10001"
+                            required
+                          />
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Special Instructions (Optional)
+                            </label>
+                            <textarea
+                              value={bookingData.special_instructions}
+                              onChange={(e) =>
+                                setBookingData({
+                                  ...bookingData,
+                                  special_instructions: e.target.value,
+                                })
+                              }
+                              placeholder="Gate code, parking instructions, pet info, etc."
+                              rows={4}
+                              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 min-h-[44px] text-base"
+                              autoComplete="off"
+                            />
+                          </div>
+                        </div>
+                      </BookingStepContent>
+                    )}
+
+                    {/* Step 4: Review */}
                     {step === 4 && (
                       <BookingStepContent key={4} step={4} direction={stepDirection.current}>
-                    <div className="space-y-6">
-                      {!holidayLoading && selectedHoliday && (
-                        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-                          <div className="font-semibold">Holiday booking notice</div>
-                          <div>
-                            You’re booking on a federal holiday. Availability may be limited and rates may
-                            be higher. All pricing is shown upfront.
-                          </div>
-                          {selectedHoliday.support_limited && (
-                            <div className="mt-2">
-                              Holiday support hours may be limited. Disputes are reviewed the next business
-                              day.
+                        <div className="space-y-6">
+                          {!holidayLoading && selectedHoliday && (
+                            <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+                              <div className="font-semibold">Holiday booking notice</div>
+                              <div>
+                                You’re booking on a federal holiday. Availability may be limited and rates may
+                                be higher. All pricing is shown upfront.
+                              </div>
+                              {selectedHoliday.support_limited && (
+                                <div className="mt-2">
+                                  Holiday support hours may be limited. Disputes are reviewed the next business
+                                  day.
+                                </div>
+                              )}
                             </div>
                           )}
+                          <div>
+                            <h3 className="font-semibold text-gray-900 mb-3">Booking Summary</h3>
+                            <div className="p-4 rounded-xl space-y-2 text-sm" style={{ backgroundColor: 'var(--brand-cloud)' }}>
+                              <div className="flex justify-between">
+                                <span className="text-gray-600">Service:</span>
+                                <span className="font-medium capitalize">
+                                  {bookingData.service_type.replace('_', ' ')}
+                                </span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-gray-600">Duration:</span>
+                                <span className="font-medium">
+                                  {bookingData.duration_hours} hours
+                                </span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-gray-600">Date & Time:</span>
+                                <span className="font-medium">
+                                  {bookingData.scheduled_date} at {bookingData.scheduled_time}
+                                </span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-gray-600">Address:</span>
+                                <span className="font-medium text-right">
+                                  {bookingData.address}
+                                  {bookingData.address_line_2 && `, ${bookingData.address_line_2}`}
+                                  <br />
+                                  {bookingData.city}, {bookingData.state} {bookingData.zip_code}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
                         </div>
-                      )}
-                      <div>
-                        <h3 className="font-semibold text-gray-900 mb-3">Booking Summary</h3>
-                        <div className="p-4 rounded-xl space-y-2 text-sm" style={{ backgroundColor: 'var(--brand-cloud)' }}>
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Service:</span>
-                            <span className="font-medium capitalize">
-                              {bookingData.service_type.replace('_', ' ')}
-                            </span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Duration:</span>
-                            <span className="font-medium">
-                              {bookingData.duration_hours} hours
-                            </span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Date & Time:</span>
-                            <span className="font-medium">
-                              {bookingData.scheduled_date} at {bookingData.scheduled_time}
-                            </span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Address:</span>
-                            <span className="font-medium text-right">
-                              {bookingData.address}
-                              {bookingData.address_line_2 && `, ${bookingData.address_line_2}`}
-                              <br />
-                              {bookingData.city}, {bookingData.state} {bookingData.zip_code}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
                       </BookingStepContent>
                     )}
 

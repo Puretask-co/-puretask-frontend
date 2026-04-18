@@ -6,6 +6,14 @@ on:
   pull_request:
     branches: [main, develop]
 
+concurrency:
+  group: frontend-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: "20"
+  BACKEND_REPO: Puretask-co/puretask-backend
+
 jobs:
   lint:
     name: Lint
@@ -14,8 +22,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
       - run: npm ci
       - run: npm run lint
 
@@ -26,8 +34,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
       - run: npm ci
       - run: npm run test:coverage
       - uses: codecov/codecov-action@v3
@@ -35,19 +43,188 @@ jobs:
           files: ./coverage/lcov.info
           fail_ci_if_error: false
 
-  build:
-    name: Build
+  contract-gate:
+    name: Frontend-Backend Contract Gate
     runs-on: ubuntu-latest
-    needs: [lint, test]
+    needs: [test]
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: puretask_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+      - run: npm ci
+      - name: Checkout backend repo
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.BACKEND_REPO }}
+          path: puretask-backend
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+          cache-dependency-path: puretask-backend/package-lock.json
+      - name: Setup backend + start server
+        working-directory: puretask-backend
+        run: |
+          npm ci
+          cat > .env <<'EOF'
+          NODE_ENV=development
+          PORT=4000
+          FRONTEND_URL=http://localhost:3001
+          DATABASE_URL=postgresql://postgres:postgres@localhost:5432/puretask_test?sslmode=disable
+          JWT_SECRET=test-secret-key-for-contract-gate-min-32
+          JWT_EXPIRES_IN=30d
+          BCRYPT_SALT_ROUNDS=10
+          STRIPE_SECRET_KEY=sk_test_contract_gate
+          STRIPE_WEBHOOK_SECRET=whsec_contract_gate
+          N8N_WEBHOOK_SECRET=n8n_contract_gate
+          BOOKINGS_ENABLED=true
+          PAYOUTS_ENABLED=false
+          CREDITS_ENABLED=true
+          REFUNDS_ENABLED=true
+          WORKERS_ENABLED=false
+          EOF
+          npm run db:setup:test
+          npm run seed:e2e:users
+          nohup npm run dev > /tmp/backend.log 2>&1 &
+      - name: Wait for backend health
+        run: |
+          for i in {1..60}; do
+            if curl -fsS "http://localhost:4000/health" > /dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Backend did not become healthy"
+          tail -n 200 /tmp/backend.log || true
+          exit 1
+      - name: Run canonical full-stack verify (prepare + contract + smoke)
+        env:
+          API_BASE: http://localhost:4000
+          TEST_EMAIL: client@test.com
+          TEST_PASSWORD: TestPass123!
+          E2E_BASE_URL: http://localhost:3001
+          E2E_FRONTEND_PORT: "3001"
+          E2E_BACKEND_PORT: "4000"
+          E2E_BACKEND_WORKDIR: ${{ github.workspace }}/puretask-backend
+          NEXT_PUBLIC_API_BASE_URL: http://localhost:4000
+          NEXT_PUBLIC_API_URL: http://localhost:4000
+          NEXT_PUBLIC_BASE_URL: http://localhost:3001
+          NEXT_PUBLIC_WS_URL: ws://localhost:4000
+        run: npm run verify:fullstack
+      - name: Cleanup deterministic E2E users
+        if: always()
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/puretask_test?sslmode=disable
+        working-directory: puretask-backend
+        run: npm run reset:e2e:users
+
+  e2e:
+    name: Playwright Fullstack Smoke
+    runs-on: ubuntu-latest
+    needs: [contract-gate]
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: puretask_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+      - run: npm ci
+      - name: Install Playwright browser dependencies
+        run: npx playwright install --with-deps chromium
+      - name: Checkout backend repo
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.BACKEND_REPO }}
+          path: puretask-backend
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+          cache-dependency-path: puretask-backend/package-lock.json
+      - name: Setup backend schema + fixtures
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/puretask_test?sslmode=disable
+          E2E_CLIENT_EMAIL: client@test.com
+          E2E_CLIENT_PASSWORD: TestPass123!
+          E2E_CLEANER_EMAIL: cleaner@test.com
+          E2E_CLEANER_PASSWORD: TestPass123!
+          E2E_ADMIN_EMAIL: admin@test.com
+          E2E_ADMIN_PASSWORD: TestPass123!
+        working-directory: puretask-backend
+        run: |
+          npm ci
+          npm run db:setup:test
+          npm run seed:e2e:users
+      - name: Run Playwright smoke checks
+        env:
+          E2E_BASE_URL: http://localhost:3001
+          E2E_FRONTEND_PORT: "3001"
+          E2E_BACKEND_PORT: "4000"
+          E2E_BACKEND_WORKDIR: ${{ github.workspace }}/puretask-backend
+          NEXT_PUBLIC_API_BASE_URL: http://localhost:4000
+          NEXT_PUBLIC_API_URL: http://localhost:4000
+          NEXT_PUBLIC_BASE_URL: http://localhost:3001
+          NEXT_PUBLIC_WS_URL: ws://localhost:4000
+          TEST_EMAIL: client@test.com
+          TEST_PASSWORD: TestPass123!
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/puretask_test?sslmode=disable
+        run: npm run test:e2e:smoke
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-smoke-report
+          path: |
+            playwright-report
+            test-results
+      - name: Cleanup deterministic E2E users
+        if: always()
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/puretask_test?sslmode=disable
+        working-directory: puretask-backend
+        run: npm run reset:e2e:users
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: [lint, test, contract-gate]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
       - run: npm ci
       - run: npm run build
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: build
           path: .next
@@ -57,12 +234,28 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build]
     if: github.ref == 'refs/heads/main'
+    environment: production
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v3
+      - uses: actions/setup-node@v4
         with:
-          name: build
-      - name: Deploy to Railway
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+      - run: npm ci
+      - run: npm run build
+      - name: Install Vercel CLI
+        run: npm i -g vercel@latest
+      - name: Deploy frontend to Vercel
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          NEXT_PUBLIC_API_BASE_URL: ${{ secrets.NEXT_PUBLIC_API_BASE_URL }}
+          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
+          NEXT_PUBLIC_BASE_URL: ${{ secrets.NEXT_PUBLIC_BASE_URL }}
+          NEXT_PUBLIC_WS_URL: ${{ secrets.NEXT_PUBLIC_WS_URL }}
+          NEXT_PUBLIC_STRIPE_PUBLIC_KEY: ${{ secrets.NEXT_PUBLIC_STRIPE_PUBLIC_KEY }}
         run: |
-          echo "Deployment would happen here"
-          # Add Railway deployment commands
+          vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+          vercel build --prod --token="$VERCEL_TOKEN"
+          vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN"

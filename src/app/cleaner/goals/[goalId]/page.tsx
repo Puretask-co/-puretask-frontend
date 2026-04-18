@@ -12,6 +12,18 @@ import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { cleanerGamificationService } from '@/services/cleanerGamification.service';
 
+type GoalItem = {
+  id?: string;
+  title?: string;
+  type?: string;
+  current?: number;
+  target?: number;
+  reward_preview?: string;
+  counts_when?: string;
+};
+
+type GoalsResponse = GoalItem[] | { goals?: GoalItem[] } | undefined;
+
 function GoalDetailContent() {
   const params = useParams();
   const goalId = (params?.goalId as string) || '';
@@ -22,8 +34,11 @@ function GoalDetailContent() {
     enabled: !!goalId,
   });
 
-  const goals = Array.isArray(goalsData) ? goalsData : (goalsData as { goals?: unknown[] })?.goals ?? [];
-  const goal = goals.find((g: { id?: string }) => g.id === goalId);
+  const normalizedGoalsData = goalsData as GoalsResponse;
+  const goals = Array.isArray(normalizedGoalsData)
+    ? normalizedGoalsData
+    : normalizedGoalsData?.goals ?? [];
+  const goal = goals.find((g) => g.id === goalId);
   const title = goal?.title ?? goal?.type ?? (goalId || 'Goal');
   const current = goal?.current ?? 0;
   const target = (goal?.target ?? 45) as number;

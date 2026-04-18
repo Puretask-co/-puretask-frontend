@@ -1,0 +1,9 @@
+* @owner-platform
+
+# Frontend ownership
+/src/ @owner-frontend
+/tests/e2e/ @owner-frontend-platform
+/scripts/ @owner-frontend-platform
+
+# Workflow ownership
+/.github/workflows/ @owner-devops

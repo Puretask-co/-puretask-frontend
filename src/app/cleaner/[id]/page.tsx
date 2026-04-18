@@ -28,6 +28,7 @@ export default function CleanerProfilePage() {
   const router = useRouter();
   const cleanerId = params.id as string;
   const [reviewPage, setReviewPage] = useState(1);
+  const [showWhatMeans, setShowWhatMeans] = useState(false);
   
   const { data: cleanerData, isLoading: loadingCleaner, isError: cleanerError } = useCleaner(cleanerId);
   const { data: reviewsData, isLoading: loadingReviews } = useCleanerReviews(cleanerId, reviewPage);
@@ -38,7 +39,8 @@ export default function CleanerProfilePage() {
   });
 
   // Support both { cleaner } and { data } response shapes from API
-  const cleaner = cleanerData?.cleaner ?? (cleanerData as { data?: typeof cleanerData.cleaner })?.data;
+  type CleanerPayload = NonNullable<typeof cleanerData>;
+  const cleaner = cleanerData?.cleaner ?? (cleanerData as (CleanerPayload & { data?: CleanerPayload['cleaner'] }) | undefined)?.data;
 
   if (loadingCleaner) {
     return <Loading size="lg" text="Loading cleaner profile..." fullScreen />;
@@ -75,7 +77,6 @@ export default function CleanerProfilePage() {
   const cleanerLevel = (cleaner as { level?: number }).level ?? null;
   const topBadges: { id: string; name: string; icon?: string }[] =
     (cleaner as { badges?: { id: string; name: string; icon?: string }[] }).badges?.slice(0, 3) ?? [];
-  const [showWhatMeans, setShowWhatMeans] = useState(false);
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">

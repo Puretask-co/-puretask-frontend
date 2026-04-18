@@ -13,6 +13,16 @@ import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { cleanerGamificationService } from '@/services/cleanerGamification.service';
 
+type GoalLike = {
+  id: string;
+  type?: string;
+  title?: string;
+  current?: number;
+  target?: number;
+  counts_when?: string;
+  reward_preview?: string;
+};
+
 function LevelDetailContent() {
   const params = useParams();
   const levelNumber = Number(params?.levelNumber) || 1;
@@ -22,9 +32,10 @@ function LevelDetailContent() {
     queryFn: () => cleanerGamificationService.getGoals(),
   });
 
-  const goals = Array.isArray(goalsData) ? goalsData : (goalsData as { goals?: unknown[] })?.goals ?? [];
-  const coreGoals = goals.filter((g: { type?: string }) => g.type === 'core' || !g.type);
-  const stretchGoals = goals.filter((g: { type?: string }) => g.type === 'stretch');
+  const goalsPayload = goalsData as GoalLike[] | { goals?: GoalLike[] } | undefined;
+  const goals: GoalLike[] = Array.isArray(goalsPayload) ? goalsPayload : goalsPayload?.goals ?? [];
+  const coreGoals = goals.filter((g) => g.type === 'core' || !g.type);
+  const stretchGoals = goals.filter((g) => g.type === 'stretch');
   const checklistGoals = coreGoals.map((g) => ({
     id: g.id,
     title: g.title ?? g.type ?? g.id,
