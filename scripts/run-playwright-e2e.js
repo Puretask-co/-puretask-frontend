@@ -10,6 +10,7 @@ const env = {
   ...process.env,
   E2E_BASE_URL: process.env.E2E_BASE_URL || process.env.FRONTEND_BASE_URL || "http://localhost:3001",
   BACKEND_URL: process.env.BACKEND_URL || "http://localhost:4000",
+  E2E_FRONTEND_COMMAND: process.env.E2E_FRONTEND_COMMAND || "npm run start:ci",
   TEST_EMAIL: process.env.TEST_EMAIL || "client@test.com",
   TEST_PASSWORD: process.env.TEST_PASSWORD || "TestPass123!",
 };

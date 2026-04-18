@@ -12,7 +12,7 @@ concurrency:
 
 env:
   NODE_VERSION: "20"
-  BACKEND_REPO: PURETASK/puretask-backend
+  BACKEND_REPO: Puretask-co/puretask-backend
 
 jobs:
   lint:
@@ -112,12 +112,20 @@ jobs:
           echo "Backend did not become healthy"
           tail -n 200 /tmp/backend.log || true
           exit 1
-      - name: Run frontend API contract verification
-        run: npm run test:api
+      - name: Run canonical full-stack verify (prepare + contract + smoke)
         env:
           API_BASE: http://localhost:4000
           TEST_EMAIL: client@test.com
           TEST_PASSWORD: TestPass123!
+          E2E_BASE_URL: http://localhost:3001
+          E2E_FRONTEND_PORT: "3001"
+          E2E_BACKEND_PORT: "4000"
+          E2E_BACKEND_WORKDIR: ${{ github.workspace }}/puretask-backend
+          NEXT_PUBLIC_API_BASE_URL: http://localhost:4000
+          NEXT_PUBLIC_API_URL: http://localhost:4000
+          NEXT_PUBLIC_BASE_URL: http://localhost:3001
+          NEXT_PUBLIC_WS_URL: ws://localhost:4000
+        run: npm run verify:fullstack
       - name: Cleanup deterministic E2E users
         if: always()
         env:
@@ -207,7 +215,7 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
-    needs: [lint, test, contract-gate, e2e]
+    needs: [lint, test, contract-gate]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

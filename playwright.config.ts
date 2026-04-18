@@ -68,7 +68,9 @@ export default defineConfig({
       timeout: 120000,
     },
     {
-      command: 'npm run dev',
+      command: process.env.CI
+        ? process.env.E2E_FRONTEND_COMMAND || 'npm run start:ci'
+        : process.env.E2E_FRONTEND_COMMAND || 'npm run dev',
       port: FRONTEND_PORT,
       reuseExistingServer: !process.env.CI,
       timeout: 120000,

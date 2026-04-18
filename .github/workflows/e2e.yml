@@ -18,7 +18,7 @@ concurrency:
 
 env:
   NODE_VERSION: "20"
-  BACKEND_REPO: PURETASK/puretask-backend
+  BACKEND_REPO: Puretask-co/puretask-backend
 
 jobs:
   e2e:
@@ -102,7 +102,7 @@ jobs:
           TEST_EMAIL: client@test.com
           TEST_PASSWORD: TestPass123!
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/puretask_e2e
-        run: npm run test:e2e:smoke
+        run: npm run verify:fullstack
 
       - name: Cleanup deterministic E2E users
         if: always()

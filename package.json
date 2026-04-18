@@ -13,7 +13,7 @@
     "test:coverage": "jest --coverage",
     "test:api": "node scripts/run-api-verification.js",
     "test:e2e": "node scripts/run-playwright-e2e.js",
-    "test:e2e:smoke": "node scripts/run-playwright-e2e.js tests/e2e/smoke/auth-smoke.spec.ts --project=chromium",
+    "test:e2e:smoke": "node scripts/run-playwright-e2e.js tests/e2e/smoke/auth-smoke.spec.ts --project=chromium --config=playwright.config.ts",
     "test:e2e:headed": "node scripts/run-playwright-e2e.js --headed --project=chromium",
     "test:e2e:ui": "playwright test --ui",
     "test:fullstack:prepare": "node scripts/prepare-fullstack-test-env.js",
