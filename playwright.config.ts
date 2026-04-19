@@ -12,7 +12,7 @@ export default defineConfig({
   reporter: 'html',
   
   use: {
-    baseURL: 'http://localhost:3001',
+    baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3001',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
@@ -44,12 +44,18 @@ export default defineConfig({
 
   webServer: [
     {
-      command: 'cd ../puretask-backend && npm run dev',
+      command:
+        process.env.PLAYWRIGHT_SKIP_WEBSERVERS === '1'
+          ? 'echo "Skipping backend webServer (PLAYWRIGHT_SKIP_WEBSERVERS=1)"'
+          : 'cd ../puretask-backend && npm run dev',
       port: 4000,
       reuseExistingServer: !process.env.CI,
     },
     {
-      command: 'npm run dev',
+      command:
+        process.env.PLAYWRIGHT_SKIP_WEBSERVERS === '1'
+          ? 'echo "Skipping frontend webServer (PLAYWRIGHT_SKIP_WEBSERVERS=1)"'
+          : 'npm run dev',
       port: 3001,
       reuseExistingServer: !process.env.CI,
     },

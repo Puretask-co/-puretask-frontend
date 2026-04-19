@@ -52,10 +52,103 @@ jobs:
           name: build
           path: .next
 
+  e2e-smoke:
+    name: E2E Smoke (auth + credits/billing)
+    runs-on: ubuntu-latest
+    needs: [build]
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: puretask_frontend_e2e
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - name: Checkout frontend
+        uses: actions/checkout@v4
+
+      - name: Checkout backend
+        uses: actions/checkout@v4
+        with:
+          repository: Puretask-co/puretask-backend
+          ref: main
+          path: puretask-backend
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Install backend dependencies
+        working-directory: puretask-backend
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Prepare backend test data for e2e
+        working-directory: puretask-backend
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/puretask_frontend_e2e
+          STRICT_MIGRATION_PATH: "1"
+          JWT_SECRET: test-secret-key-for-ci-minimum-32-chars-long
+          STRIPE_SECRET_KEY: sk_test_fake_key_for_ci_testing_only
+          STRIPE_WEBHOOK_SECRET: whsec_test_secret_for_ci
+          N8N_WEBHOOK_SECRET: test-n8n-secret-for-ci
+        run: |
+          npm run db:validate:migrations
+          npm run db:setup:test
+          npm run seed:e2e:users
+
+      - name: Run Playwright smoke suite
+        env:
+          PLAYWRIGHT_SKIP_WEBSERVERS: "1"
+          PLAYWRIGHT_BASE_URL: http://localhost:3001
+          TEST_EMAIL: client@test.com
+          TEST_PASSWORD: TestPass123!
+          TEST_CLEANER_EMAIL: cleaner@test.com
+          TEST_CLEANER_PASSWORD: TestPass123!
+          API_BASE: http://localhost:4000
+        run: |
+          cd puretask-backend
+          DATABASE_URL=postgresql://postgres:postgres@localhost:5432/puretask_frontend_e2e \
+          JWT_SECRET=test-secret-key-for-ci-minimum-32-chars-long \
+          STRIPE_SECRET_KEY=sk_test_fake_key_for_ci_testing_only \
+          STRIPE_WEBHOOK_SECRET=whsec_test_secret_for_ci \
+          N8N_WEBHOOK_SECRET=test-n8n-secret-for-ci \
+          npm run dev > /tmp/puretask-backend-e2e.log 2>&1 &
+          cd ..
+          npm run dev > /tmp/puretask-frontend-e2e.log 2>&1 &
+          for i in {1..60}; do
+            if curl -fsS http://localhost:4000/health > /dev/null && curl -fsS http://localhost:3001 > /dev/null; then
+              break
+            fi
+            sleep 2
+          done
+          npm run test:e2e:smoke
+          npm run test:e2e:trust-smoke
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: playwright-smoke-report
+          path: playwright-report/
+
   deploy:
     name: Deploy
     runs-on: ubuntu-latest
-    needs: [build]
+    needs: [build, e2e-smoke]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     steps:
       - name: Dispatch frontend release workflow

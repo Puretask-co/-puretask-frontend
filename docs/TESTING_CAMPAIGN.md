@@ -44,7 +44,19 @@ API_BASE=http://localhost:4000 TEST_EMAIL=client@test.com TEST_PASSWORD=YourPass
 
 ## 4. Run E2E Tests
 
-Requires Playwright (`npm install -D @playwright/test` if needed).
+Requires Playwright (`@playwright/test` is already in `devDependencies`).
+
+Recommended smoke gate:
+
+```bash
+npm run test:e2e:smoke
+```
+
+Expanded CI journey lane (auth + credits/billing):
+
+```bash
+npm run test:e2e:ci
+```
 
 ```bash
 npx playwright test tests/e2e/trust
@@ -181,18 +193,23 @@ Copy and fill after each run:
 
 ## 9. CI Integration
 
-Add to your CI pipeline:
+Current CI target for expanded journey coverage:
 
 ```yaml
-# Example GitHub Actions
-- name: Start backend
-  run: cd puretask-backend && npm run dev &
-- name: Start frontend
-  run: npm run dev &
-- name: Wait for servers
-  run: sleep 10
-- name: API verification
-  run: node scripts/run-api-verification.js
-- name: E2E tests
-  run: npx playwright test tests/e2e/trust
+# frontend .github/workflows/ci.yml
+- name: Checkout backend for full-stack e2e
+  uses: actions/checkout@v4
+  with:
+    repository: Puretask-co/puretask-backend
+    ref: "${{ github.event.pull_request.base.sha || 'main' }}"
+    path: backend
+
+- name: Seed backend deterministic users
+  working-directory: backend
+  run: npm run seed:e2e:users
+
+- name: Expanded e2e journey gate
+  run: npm run test:e2e:ci
 ```
+
+This ensures the default CI path runs more than auth-only smoke and includes a payments-adjacent client journey (`credits-trust` + `billing-trust`).
