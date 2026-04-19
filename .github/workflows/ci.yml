@@ -58,11 +58,13 @@ jobs:
     needs: [build]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v3
-        with:
-          name: build
-      - name: Deploy to Railway
+      - name: Dispatch frontend release workflow
+        env:
+          GH_TOKEN: ${{ secrets.PURETASK_ORG_DISPATCH_TOKEN || secrets.GITHUB_TOKEN }}
         run: |
-          echo "Deployment would happen here"
-          # Add Railway deployment commands
+          gh workflow run release.yml \
+            --repo "${{ github.repository }}" \
+            --field environment="production" \
+            --field frontend_ref="${{ github.sha }}" \
+            --field orchestration_run_id="${{ github.run_id }}" \
+            --ref "${{ github.ref_name }}"
