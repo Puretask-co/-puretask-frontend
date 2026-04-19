@@ -248,6 +248,7 @@ function BookingPageContent() {
                             })
                           }
                         />
+                      </BookingStepContent>
                   )}
                   {step === 2 && !holidayLoading && selectedHoliday && (
                     <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
@@ -402,6 +403,7 @@ function BookingPageContent() {
                           </div>
                         </div>
                       </div>
+                    </div>
                       </BookingStepContent>
                     )}
 

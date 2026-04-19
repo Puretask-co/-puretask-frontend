@@ -1,6 +1,6 @@
 # Canonical Job Status
 
-Single source of truth for **job/booking status** and **allowed transitions**. Keep backend, frontend, and n8n in sync with this document.
+Single source of truth for **job/booking status** and **allowed transitions**. Keep backend, frontend, and n8n in sync with this document. For entity naming (booking vs job, canonical ID), see [PURETASK_PRODUCT_BRAIN.md](./PURETASK_PRODUCT_BRAIN.md) § 0.
 
 ---
 
@@ -20,7 +20,7 @@ Use these exact string values in API payloads, DB, and workflows.
 | `cancelled` | Job cancelled (by client, cleaner, or system). | Client, Cleaner, Admin |
 | `disputed` | Client opened a dispute; awaiting admin resolution. | Client, Cleaner, Admin |
 
-**Terminal statuses:** `completed`, `cancelled`, `disputed` (disputed may later move to completed/cancelled after resolution).
+**True terminal (no outgoing transitions):** `completed`, `cancelled`. **Non-terminal but closed loop:** `disputed` — only admin can transition it to `completed` or `cancelled`; after that, the job is terminal.
 
 ---
 
