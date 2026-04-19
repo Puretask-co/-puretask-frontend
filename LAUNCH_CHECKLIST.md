@@ -4,7 +4,7 @@
 **Version:** 1.0.0  
 **Target Launch Date:** _______________
 
-**Last Updated:** 2025-02-14
+**Last Updated:** 2026-04-19
 
 ---
 
@@ -31,6 +31,7 @@
 - [x] Build size: `npm run analyze:bundle` — static ~1.3 MB, server ~5.9 MB (see scripts/analyze-bundle.js)
 - [x] No build warnings (build completes with no warnings)
 - [x] Production build tested locally: run `npm run build && npm run start` (see docs/DEPLOYMENT.md)
+- [ ] **Current blocker:** Fix JSX parse error in `src/app/client/bookings/[id]/page.tsx` so build gate is reliably green again
 
 ---
 
@@ -211,7 +212,7 @@
 - [x] Node version specified (.nvmrc = 20; set in hosting UI if needed)
 - [x] Build command verified: `npm run build` (see docs/DEPLOYMENT.md)
 - [x] Output directory correct: Next.js default `.next` (platform auto-detects)
-- [ ] Deployment triggers set (main branch)
+- [x] Deployment triggers set (main branch dispatches `.github/workflows/release.yml` from CI deploy job)
 
 #### Domain Setup
 - [ ] Custom domain configured

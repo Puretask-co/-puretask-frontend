@@ -1,73 +1,69 @@
-# Deployment (Phase 7)
+# Deployment (frontend)
 
-## Build & run locally (production mode)
+## Local production-mode check
 
 ```bash
 npm run build
 npm run start
 ```
 
-- App runs at **http://localhost:3000** (default Next.js port).
-- Use this to verify the production build before deploying.
+- Production server listens on `http://localhost:3001` (`start` uses `next start -p 3001`).
+- Run this before release dispatch to confirm the build can boot.
 
-## Hosting (Vercel / Netlify / etc.)
+## CI and release workflows
 
-### Build settings
+### CI (`.github/workflows/ci.yml`)
 
-| Setting        | Value        |
-|----------------|-------------|
-| **Build command** | `npm run build` |
-| **Output directory** | `.next` (Next.js default; platform usually auto-detects) |
-| **Install command** | `npm ci` or `npm install` |
-| **Node version**    | 18.x or 20.x (set in UI or `.nvmrc` / `engines`) |
+- `lint` job runs `npm run lint`
+- `test` job runs `npm run test:coverage`
+- `build` job runs `npm run build`
+- `deploy` job (main push only) dispatches `release.yml` via:
+  - `gh workflow run release.yml --field environment=production --field frontend_ref=<sha> --field orchestration_run_id=<run_id>`
 
-### Environment variables
+### Release (`.github/workflows/release.yml`)
 
-Configure in the hosting dashboard. See **docs/ENV_SETUP.md** and **.env.example** for the full list. Minimum for production:
+Manual `workflow_dispatch` workflow with inputs:
 
-- `NEXT_PUBLIC_API_URL` (or `NEXT_PUBLIC_API_BASE_URL`)
+- `environment` (`production` or `staging`)
+- `backend_ref` (optional, for cross-repo traceability)
+- `frontend_ref` (optional, for cross-repo traceability)
+- `orchestration_run_id` (optional, for cross-repo traceability)
+
+Release steps:
+
+1. `npm ci`
+2. `npm run build`
+3. Deploy to Railway (`railway up --service "${RAILWAY_FRONTEND_SERVICE}" --detach`)
+4. Health probe using `FRONTEND_HEALTHCHECK_URL` (fallback: `NEXT_PUBLIC_BASE_URL`)
+
+## Railway configuration
+
+Set in Railway service variables:
+
+- `RAILWAY_TOKEN`
+- `RAILWAY_FRONTEND_SERVICE`
+- `FRONTEND_HEALTHCHECK_URL` (recommended)
+- `NEXT_PUBLIC_API_BASE_URL`
+- `NEXT_PUBLIC_API_URL`
 - `NEXT_PUBLIC_BASE_URL`
 - `NEXT_PUBLIC_WS_URL`
-- `NEXT_PUBLIC_STRIPE_PUBLIC_KEY` (when taking payments)
 
-### Node version
+Optional:
 
-**.nvmrc** is set to `20` so CI and hosts use a consistent Node version. Configure the same in your hosting platform (e.g. Vercel: Project Settings → General → Node.js Version).
+- `NEXT_PUBLIC_STRIPE_PUBLIC_KEY`
+- `NEXT_PUBLIC_GA_ID`
+- `NEXT_PUBLIC_SENTRY_DSN`
 
----
+## Backend dependency notes
 
-## Railway (you’re using this)
+This frontend assumes backend endpoints are available. Before release promotion, run:
 
-For this Next.js frontend service on Railway:
+- Frontend: `npm run test:api`
+- Frontend: `npm run verify:fullstack`
 
-| Setting | Value |
-|--------|--------|
-| **Build command** | `npm run build` (or leave empty; Railway often auto-detects Next.js) |
-| **Start command** | `npm run start` (or `npx next start`) |
-| **Root directory** | Leave default (repo root) unless the app lives in a subfolder |
-| **Node version** | Picked up from **.nvmrc** (20); or set in Railway → Service → Variables: `NODE_VERSION=20` |
+If backend and frontend are coordinated by backend orchestration, verify refs are explicit (`backend_ref`, `frontend_ref`) and validate job passes before dispatch.
 
-**Environment variables:** In Railway → your service → **Variables**, add the same vars as in **.env.example** / **docs/ENV_SETUP.md**. At minimum:
+## Known current blocker
 
-- `NEXT_PUBLIC_API_URL` (or `NEXT_PUBLIC_API_BASE_URL`) — your backend API URL
-- `NEXT_PUBLIC_BASE_URL` — the public URL of this frontend (e.g. your Railway app URL)
-- `NEXT_PUBLIC_WS_URL` — WebSocket URL if the app uses real-time features
-
-**Port:** Railway injects `PORT`; Next.js `start` uses it by default in production. No need to set it unless you’re customizing.
-
-If the backend also runs on Railway, use that service’s public URL for `NEXT_PUBLIC_API_URL` and `NEXT_PUBLIC_WS_URL`.
-
----
-
-## Production: photo uploads and DB
-
-### Storage (S3/R2) for photo uploads
-
-Photo upload flow is **POST /uploads/sign → PUT to putUrl → POST /jobs/:jobId/photos/commit**. The **backend** that serves `/uploads/sign` must have storage credentials set in production so signed PUT URLs work.
-
-- Set **STORAGE_*** (or your backend's equivalent, e.g. **S3_***) in production for the service that generates presigned URLs (e.g. bucket, region, access key, secret key; for R2 also endpoint).
-- If the frontend uses a Next.js API route that calls `lib/storage.ts`, set **S3_BUCKET**, **S3_REGION**, **S3_ACCESS_KEY_ID**, **S3_SECRET_ACCESS_KEY** (and **S3_ENDPOINT** for R2) in the host environment.
-
-### Migration 062 and client_dispute photos
-
-- Run **migration 062** on any database that needs **client_dispute** job photos (e.g. staging, production). That migration should add or adjust schema so `kind = 'client_dispute'` is supported. Run it on each DB that serves photo uploads and dispute evidence.
+- `npm run build` currently fails due to a JSX parse error in `src/app/client/bookings/[id]/page.tsx`.
+- Fix this blocker before relying on frontend build as a strict release gate.
