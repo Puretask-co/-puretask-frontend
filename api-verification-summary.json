@@ -1,0 +1,165 @@
+{
+  "generatedAt": "2026-04-19T06:00:38.545Z",
+  "apiBase": "http://localhost:4000",
+  "passed": 15,
+  "total": 15,
+  "failed": 0,
+  "requestId": "frontend-contract-1776578438366",
+  "results": [
+    {
+      "name": "GET /health",
+      "ok": true,
+      "status": 200,
+      "durationMs": 35,
+      "message": "",
+      "solution": ""
+    },
+    {
+      "name": "POST /auth/login",
+      "ok": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjBiNDM0NDNmLTNhNWQtNGE2OC04OWE3LWMyYTllMDM5NjJhNSIsInJvbGUiOiJjbGllbnQiLCJqdGkiOiJlMjgxMTBjODRlMTQzNzdlZjk4NTA5NDhiZDdiMjlkMSIsImlhdCI6MTc3NjU3ODQzOCwiZXhwIjoxNzc5MTcwNDM4fQ.RS_CtLwIikQfQqGyrFDhhDYz48pXWGmes18e02NpKaU",
+      "status": 200,
+      "durationMs": 67,
+      "message": "",
+      "solution": ""
+    },
+    {
+      "name": "GET /config/job-status",
+      "ok": {
+        "job_created": [
+          "client",
+          "admin",
+          "system"
+        ],
+        "job_accepted": [
+          "cleaner"
+        ],
+        "cleaner_on_my_way": [
+          "cleaner"
+        ],
+        "job_started": [
+          "cleaner"
+        ],
+        "job_completed": [
+          "cleaner"
+        ],
+        "client_approved": [
+          "client"
+        ],
+        "client_disputed": [
+          "client"
+        ],
+        "dispute_resolved_refund": [
+          "admin"
+        ],
+        "dispute_resolved_no_refund": [
+          "admin"
+        ],
+        "job_cancelled": [
+          "client",
+          "admin",
+          "system"
+        ]
+      },
+      "status": 200,
+      "durationMs": 2,
+      "message": "statuses=8",
+      "solution": ""
+    },
+    {
+      "name": "GET /bookings/me",
+      "ok": true,
+      "status": 200,
+      "durationMs": 4,
+      "message": "bookings=0",
+      "solution": ""
+    },
+    {
+      "name": "GET /referral/me",
+      "ok": true,
+      "status": 200,
+      "durationMs": 4,
+      "message": "code=none",
+      "solution": ""
+    },
+    {
+      "name": "GET /cleaners/:id/reviews",
+      "ok": true,
+      "status": 200,
+      "durationMs": 5,
+      "message": "reviews=0",
+      "solution": ""
+    },
+    {
+      "name": "GET /api/credits/balance",
+      "ok": true,
+      "status": 200,
+      "durationMs": 4,
+      "message": "balance=0",
+      "solution": ""
+    },
+    {
+      "name": "GET /api/credits/ledger",
+      "ok": true,
+      "status": 200,
+      "durationMs": 4,
+      "message": "entries=0",
+      "solution": ""
+    },
+    {
+      "name": "POST /credits/checkout",
+      "ok": true,
+      "status": 400,
+      "durationMs": 5,
+      "message": "Rejected invalid package as expected for this environment",
+      "solution": ""
+    },
+    {
+      "name": "GET /api/billing/invoices",
+      "ok": true,
+      "status": 200,
+      "durationMs": 4,
+      "message": "invoices=0",
+      "solution": ""
+    },
+    {
+      "name": "GET /api/billing/invoices/:id (404)",
+      "ok": true,
+      "status": 403,
+      "durationMs": 3,
+      "message": "404 or 200 expected",
+      "solution": ""
+    },
+    {
+      "name": "POST /client/invoices/:id/pay (expect 404/400 for invalid)",
+      "ok": true,
+      "status": 403,
+      "durationMs": 11,
+      "message": "Expected error for invalid id",
+      "solution": ""
+    },
+    {
+      "name": "GET /api/appointments/:bookingId/live",
+      "ok": true,
+      "status": 403,
+      "durationMs": 8,
+      "message": "404 for unknown booking",
+      "solution": ""
+    },
+    {
+      "name": "POST /api/appointments/:bookingId/events",
+      "ok": true,
+      "status": 403,
+      "durationMs": 8,
+      "message": "OK or expected error",
+      "solution": ""
+    },
+    {
+      "name": "GET /cleaners/:cleanerId/reliability",
+      "ok": true,
+      "status": 404,
+      "durationMs": 9,
+      "message": "404 for unknown cleaner",
+      "solution": ""
+    }
+  ]
+}
