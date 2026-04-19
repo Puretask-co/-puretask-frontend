@@ -82,7 +82,7 @@ async function run() {
       method: 'POST',
       body: JSON.stringify({ email: TEST_EMAIL, password: TEST_PASSWORD }),
     });
-    const ok = res.ok && body?.token;
+    const ok = Boolean(res.ok && body?.token);
     if (ok) token = body.token;
     log(
       'POST /auth/login',
@@ -108,12 +108,13 @@ async function run() {
   try {
     const { res, body, durationMs } = await fetchJson(`${API_BASE}/config/job-status`);
     const payload = body?.data ?? body;
-    const ok =
+    const ok = Boolean(
       res.ok &&
       Array.isArray(payload?.statuses) &&
       payload?.events &&
       payload?.transitions &&
-      payload?.eventPermissions;
+      payload?.eventPermissions
+    );
     log(
       'GET /config/job-status',
       ok,

@@ -1,65 +1,30 @@
 {
-  "generatedAt": "2026-04-19T06:00:38.545Z",
+  "generatedAt": "2026-04-19T06:03:48.253Z",
   "apiBase": "http://localhost:4000",
   "passed": 15,
   "total": 15,
   "failed": 0,
-  "requestId": "frontend-contract-1776578438366",
+  "requestId": "frontend-contract-1776578628077",
   "results": [
     {
       "name": "GET /health",
       "ok": true,
       "status": 200,
-      "durationMs": 35,
+      "durationMs": 32,
       "message": "",
       "solution": ""
     },
     {
       "name": "POST /auth/login",
-      "ok": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjBiNDM0NDNmLTNhNWQtNGE2OC04OWE3LWMyYTllMDM5NjJhNSIsInJvbGUiOiJjbGllbnQiLCJqdGkiOiJlMjgxMTBjODRlMTQzNzdlZjk4NTA5NDhiZDdiMjlkMSIsImlhdCI6MTc3NjU3ODQzOCwiZXhwIjoxNzc5MTcwNDM4fQ.RS_CtLwIikQfQqGyrFDhhDYz48pXWGmes18e02NpKaU",
+      "ok": true,
       "status": 200,
-      "durationMs": 67,
+      "durationMs": 68,
       "message": "",
       "solution": ""
     },
     {
       "name": "GET /config/job-status",
-      "ok": {
-        "job_created": [
-          "client",
-          "admin",
-          "system"
-        ],
-        "job_accepted": [
-          "cleaner"
-        ],
-        "cleaner_on_my_way": [
-          "cleaner"
-        ],
-        "job_started": [
-          "cleaner"
-        ],
-        "job_completed": [
-          "cleaner"
-        ],
-        "client_approved": [
-          "client"
-        ],
-        "client_disputed": [
-          "client"
-        ],
-        "dispute_resolved_refund": [
-          "admin"
-        ],
-        "dispute_resolved_no_refund": [
-          "admin"
-        ],
-        "job_cancelled": [
-          "client",
-          "admin",
-          "system"
-        ]
-      },
+      "ok": true,
       "status": 200,
       "durationMs": 2,
       "message": "statuses=8",
@@ -93,7 +58,7 @@
       "name": "GET /api/credits/balance",
       "ok": true,
       "status": 200,
-      "durationMs": 4,
+      "durationMs": 3,
       "message": "balance=0",
       "solution": ""
     },
@@ -101,7 +66,7 @@
       "name": "GET /api/credits/ledger",
       "ok": true,
       "status": 200,
-      "durationMs": 4,
+      "durationMs": 3,
       "message": "entries=0",
       "solution": ""
     },
@@ -109,7 +74,7 @@
       "name": "POST /credits/checkout",
       "ok": true,
       "status": 400,
-      "durationMs": 5,
+      "durationMs": 3,
       "message": "Rejected invalid package as expected for this environment",
       "solution": ""
     },
@@ -125,7 +90,7 @@
       "name": "GET /api/billing/invoices/:id (404)",
       "ok": true,
       "status": 403,
-      "durationMs": 3,
+      "durationMs": 8,
       "message": "404 or 200 expected",
       "solution": ""
     },
@@ -133,7 +98,7 @@
       "name": "POST /client/invoices/:id/pay (expect 404/400 for invalid)",
       "ok": true,
       "status": 403,
-      "durationMs": 11,
+      "durationMs": 9,
       "message": "Expected error for invalid id",
       "solution": ""
     },
@@ -157,7 +122,7 @@
       "name": "GET /cleaners/:cleanerId/reliability",
       "ok": true,
       "status": 404,
-      "durationMs": 9,
+      "durationMs": 7,
       "message": "404 for unknown cleaner",
       "solution": ""
     }
