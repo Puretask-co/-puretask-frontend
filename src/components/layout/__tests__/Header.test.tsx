@@ -6,6 +6,22 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { Header } from '../Header';
 import { AuthContext } from '@/contexts/AuthContext';
 
+jest.mock('next/navigation', () => ({
+  usePathname: () => '/client',
+}));
+
+jest.mock('@/components/ui/BackButton', () => ({
+  BackButton: () => <button type="button">Back</button>,
+}));
+
+jest.mock('@/components/features/notifications/NotificationBell', () => ({
+  NotificationBell: () => <div data-testid="notification-bell" />,
+}));
+
+jest.mock('../MobileNav', () => ({
+  MobileNav: () => <div data-testid="mobile-nav" />,
+}));
+
 // Mock AuthContext
 const mockUser = {
   id: 'user-123',
@@ -18,98 +34,79 @@ const mockAuthValue = {
   login: jest.fn(),
   logout: jest.fn(),
   isLoading: false,
+  isAuthenticated: true,
+  register: jest.fn(),
+  refreshUser: jest.fn(),
 };
 
-// TODO: Fix Header tests (AuthContext/nav structure) - TODOS.md
-describe.skip('Header', () => {
+function renderHeader(authOverrides: Partial<typeof mockAuthValue> = {}) {
+  const value = {
+    ...mockAuthValue,
+    ...authOverrides,
+  };
+
+  return render(
+    <AuthContext.Provider value={value}>
+      <Header />
+    </AuthContext.Provider>
+  );
+}
+
+describe('Header', () => {
   it('displays user name when authenticated', () => {
-    render(
-      <AuthContext.Provider value={mockAuthValue}>
-        <Header />
-      </AuthContext.Provider>
-    );
+    renderHeader();
 
     expect(screen.getByText(/test@example.com/i)).toBeInTheDocument();
   });
 
-  it('shows logout button when authenticated', () => {
-    render(
-      <AuthContext.Provider value={mockAuthValue}>
-        <Header />
-      </AuthContext.Provider>
-    );
+  it('shows notification bell when authenticated', () => {
+    renderHeader();
 
-    const logoutButton = screen.getByRole('button', { name: /logout/i });
-    expect(logoutButton).toBeInTheDocument();
+    expect(screen.getByTestId('notification-bell')).toBeInTheDocument();
   });
 
   it('shows login link when not authenticated', () => {
-    const noUserAuth = {
-      ...mockAuthValue,
-      user: null,
-    };
-
-    render(
-      <AuthContext.Provider value={noUserAuth}>
-        <Header />
-      </AuthContext.Provider>
-    );
+    renderHeader({ user: null, isAuthenticated: false });
 
     expect(screen.getByText(/login/i)).toBeInTheDocument();
+    expect(screen.getByText(/sign up/i)).toBeInTheDocument();
   });
 
-  it('toggles mobile menu when menu button clicked', () => {
-    const onMenuClick = jest.fn();
-    render(
-      <AuthContext.Provider value={mockAuthValue}>
-        <Header onMenuClick={onMenuClick} />
-      </AuthContext.Provider>
-    );
+  it('renders mobile nav component', () => {
+    renderHeader();
 
-    const menuButton = screen.getByLabelText(/menu/i);
-    fireEvent.click(menuButton);
+    expect(screen.getByTestId('mobile-nav')).toBeInTheDocument();
+  });
 
-    expect(onMenuClick).toHaveBeenCalled();
+  it('toggles search bar when search button clicked', () => {
+    renderHeader();
+
+    const searchButton = screen.getByLabelText(/toggle search/i);
+    fireEvent.click(searchButton);
+
+    expect(
+      screen.getByPlaceholderText(/search bookings, cleaners, clients/i)
+    ).toBeInTheDocument();
   });
 
   it('shows role-specific navigation for client', () => {
-    render(
-      <AuthContext.Provider value={mockAuthValue}>
-        <Header />
-      </AuthContext.Provider>
-    );
+    renderHeader();
 
-    expect(screen.getByText(/find a cleaner/i)).toBeInTheDocument();
-    expect(screen.getByText(/my bookings/i)).toBeInTheDocument();
+    expect(screen.getAllByText('Credits').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Book').length).toBeGreaterThan(0);
   });
 
   it('shows role-specific navigation for cleaner', () => {
-    const cleanerAuth = {
-      ...mockAuthValue,
-      user: { ...mockUser, role: 'cleaner' as const },
-    };
+    renderHeader({ user: { ...mockUser, role: 'cleaner' as const } });
 
-    render(
-      <AuthContext.Provider value={cleanerAuth}>
-        <Header />
-      </AuthContext.Provider>
-    );
-
-    expect(screen.getByText(/my dashboard/i)).toBeInTheDocument();
+    expect(screen.getAllByText('Today').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Earnings').length).toBeGreaterThan(0);
   });
 
   it('shows admin panel link for admin users', () => {
-    const adminAuth = {
-      ...mockAuthValue,
-      user: { ...mockUser, role: 'admin' as const },
-    };
+    renderHeader({ user: { ...mockUser, role: 'admin' as const } });
 
-    render(
-      <AuthContext.Provider value={adminAuth}>
-        <Header />
-      </AuthContext.Provider>
-    );
-
-    expect(screen.getByText(/admin panel/i)).toBeInTheDocument();
+    expect(screen.getAllByText('Admin').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Gamification').length).toBeGreaterThan(0);
   });
 });

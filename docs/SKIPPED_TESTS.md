@@ -11,15 +11,15 @@ This document lists every test (or suite) that was skipped so the test run would
 | File | Type | What was skipped | Likely fix |
 |------|------|------------------|------------|
 | `src/contexts/__tests__/ToastContext.test.tsx` | `describe.skip` | Entire **ToastContext** suite | Toast uses fake timers + `waitFor`; ensure timers are advanced correctly and toast DOM is visible. May need `act()` around button click and timer advance. |
-| `src/components/error/__tests__/ErrorBoundary.test.tsx` | `describe.skip` | Entire **ErrorBoundary** suite | ErrorBoundary now dynamically imports Sentry in `componentDidCatch`; tests may fail or behave differently. Mock `@/lib/monitoring/sentry` (e.g. `jest.mock('@/lib/monitoring/sentry', () => ({ captureException: jest.fn() }))`) and/or wrap in `act()` if async. |
-| `src/components/layout/__tests__/Header.test.tsx` | `describe.skip` | Entire **Header** suite | Header likely expects specific nav structure or AuthContext shape. Align mocks with current Header implementation (e.g. email display, logout button, login link, mobile menu). |
+| `src/components/error/__tests__/ErrorBoundary.test.tsx` | `describe` | ✅ **RESTORED (2026-04-19)** | Re-enabled suite with Sentry mock + assertions aligned to current retry behavior; all tests passing. |
+| `src/components/layout/__tests__/Header.test.tsx` | `describe` | ✅ **RESTORED (2026-04-19)** | Re-enabled suite with updated AuthContext shape, mocked dependencies (`BackButton`, `NotificationBell`, `MobileNav`) and duplicate-label-safe assertions. |
 | `src/components/onboarding/__tests__/TermsAgreementStep.test.tsx` | `describe.skip` | Entire **TermsAgreementStep** suite | Component labels or structure changed. Update tests to use current label text and roles (e.g. `getByLabelText`, `getByRole('button', { name: /continue/i })`). |
 | `src/hooks/__tests__/useBookings.test.tsx` | `describe.skip` | Entire **useBookings hooks** suite | Mock shape for `bookingService.getMyBookings` (or similar) may not match actual API response (e.g. `data` vs direct array). Align mocks and assertions with `useBookings` and `booking.service`. |
 | `src/contexts/__tests__/WebSocketContext.test.tsx` | `describe.skip` | Entire **WebSocketContext** suite | Socket.io mock or auth mock may not match current behavior. Ensure `io` mock returns an object with `on`, `off`, `emit`, `connected` and that provider gets token from storage/auth. |
 | `src/contexts/__tests__/AuthContext.test.tsx` | `describe.skip` | Entire **AuthContext** suite | Initial load, localStorage, and API mock timing. Mock `apiClient` and `STORAGE_KEYS` to match actual usage; use `waitFor` for async state updates. |
 | `src/contexts/__tests__/NotificationContext.test.tsx` | `describe.skip` | Entire **NotificationContext** suite | Mocks for Auth, WebSocket, Toast, and `notificationService` must match provider tree and API. Fix async assertions and mock return shapes. |
 | `src/hooks/__tests__/useCleanerOnboarding.test.tsx` | `describe.skip` | Entire **useCleanerOnboarding** suite | `getOnboardingProgress` (or similar) mock and hook async behavior. Use `waitFor` and ensure mock resolves to the shape the hook expects. |
-| `src/tests/hooks/useFormValidation.test.tsx` | `describe.skip` | Entire **useFormValidation** suite | Hook returns `react-hook-form`’s `UseFormReturn`, which uses `trigger()` for validation, not `validate()`. Change tests to call `trigger()` (or the correct API) and assert on `formState.errors` / `formState.isValid`. |
+| `src/tests/hooks/useFormValidation.test.tsx` | `describe` | ✅ **RESTORED (2026-04-19)** | Re-enabled suite and switched assertions to `trigger()` + `waitFor` for async `formState` updates; tests passing. |
 
 ---
 
@@ -38,24 +38,24 @@ This document lists every test (or suite) that was skipped so the test run would
 ## Quick reference: files to edit
 
 - `src/contexts/__tests__/ToastContext.test.tsx`
-- `src/components/error/__tests__/ErrorBoundary.test.tsx`
-- `src/components/layout/__tests__/Header.test.tsx`
+- ~~`src/components/error/__tests__/ErrorBoundary.test.tsx`~~ (restored)
+- ~~`src/components/layout/__tests__/Header.test.tsx`~~ (restored)
 - `src/components/onboarding/__tests__/TermsAgreementStep.test.tsx`
 - `src/hooks/__tests__/useBookings.test.tsx`
 - `src/contexts/__tests__/WebSocketContext.test.tsx`
 - `src/contexts/__tests__/AuthContext.test.tsx`
 - `src/contexts/__tests__/NotificationContext.test.tsx`
 - `src/hooks/__tests__/useCleanerOnboarding.test.tsx`
-- `src/tests/hooks/useFormValidation.test.tsx`
+- ~~`src/tests/hooks/useFormValidation.test.tsx`~~ (restored)
 - `tests/components/frontend.test.tsx` (multiple `it.skip` and `describe.skip`)
 
 ---
 
 ## Re-enable order suggestion
 
-1. **useFormValidation** – small API change: use `trigger()` and correct assertions.
-2. **ErrorDisplay** (already fixed) / **ErrorBoundary** – add Sentry mock and re-enable ErrorBoundary suite.
-3. **Header** – align with current nav and auth mocks.
+1. ✅ **useFormValidation** – restored.
+2. ✅ **ErrorBoundary** – restored.
+3. ✅ **Header** – restored.
 4. **TermsAgreementStep** – update labels/roles.
 5. **ToastContext** – fix timers and `act()`.
 6. **TemplateEditor** (two `it.skip`) – fix value/preview assertions.

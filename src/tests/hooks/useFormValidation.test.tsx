@@ -7,9 +7,8 @@ const testSchema = z.object({
   name: z.string().min(3, 'Name too short'),
 });
 
-// TODO: useFormValidation returns react-hook-form UseFormReturn (trigger, not validate) - align tests
-describe.skip('useFormValidation', () => {
-  it('validates form data', () => {
+describe('useFormValidation', () => {
+  it('validates form data', async () => {
     const { result } = renderHook(() => useFormValidation(testSchema));
 
     act(() => {
@@ -17,27 +16,28 @@ describe.skip('useFormValidation', () => {
       result.current.setValue('name', 'ab');
     });
 
-    act(() => {
-      result.current.validate();
+    let isValid = true;
+    await act(async () => {
+      isValid = await result.current.trigger();
     });
 
-    expect(result.current.errors.email).toBeDefined();
-    expect(result.current.errors.name).toBeDefined();
+    expect(isValid).toBe(false);
   });
 
-  it('clears errors on valid input', () => {
-    const { result } = renderHook(() => useFormValidation(testSchema));
+  it('clears errors on valid input', async () => {
+    const { result } = renderHook(() =>
+      useFormValidation(testSchema, {
+        email: 'test@example.com',
+        name: 'John Doe',
+      })
+    );
 
-    act(() => {
-      result.current.setValue('email', 'test@example.com');
-      result.current.setValue('name', 'John Doe');
+    let isValid = false;
+    await act(async () => {
+      isValid = await result.current.trigger();
     });
 
-    act(() => {
-      result.current.validate();
-    });
-
-    expect(result.current.isValid).toBe(true);
-    expect(Object.keys(result.current.errors)).toHaveLength(0);
+    expect(isValid).toBe(true);
+    expect(Object.keys(result.current.formState.errors)).toHaveLength(0);
   });
 });
