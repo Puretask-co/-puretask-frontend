@@ -55,7 +55,7 @@ npm run test:e2e:smoke
 Expanded CI journey lane (auth + credits/billing):
 
 ```bash
-npm run test:e2e:ci
+npm run test:e2e
 ```
 
 ```bash
@@ -209,7 +209,7 @@ Current CI target for expanded journey coverage:
   run: npm run seed:e2e:users
 
 - name: Expanded e2e journey gate
-  run: npm run test:e2e:ci
+  run: npm run test:e2e
 ```
 
 This ensures the default CI path runs more than auth-only smoke and includes a payments-adjacent client journey (`credits-trust` + `billing-trust`).

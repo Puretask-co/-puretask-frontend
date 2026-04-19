@@ -47,7 +47,7 @@ export default defineConfig({
       command:
         process.env.PLAYWRIGHT_SKIP_WEBSERVERS === '1'
           ? 'echo "Skipping backend webServer (PLAYWRIGHT_SKIP_WEBSERVERS=1)"'
-          : 'cd ../puretask-backend && npm run dev',
+          : 'bash -lc \'if [ -d "./puretask-backend" ]; then cd "./puretask-backend"; elif [ -d "../puretask-backend" ]; then cd "../puretask-backend"; else cd ".."; fi; npm run dev\'',
       port: 4000,
       reuseExistingServer: !process.env.CI,
     },
