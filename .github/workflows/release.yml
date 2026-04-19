@@ -1,0 +1,83 @@
+name: Frontend Release Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target environment"
+        required: true
+        default: "production"
+        type: choice
+        options:
+          - production
+          - staging
+      backend_ref:
+        description: "Validated backend ref from orchestration"
+        required: false
+        default: ""
+      frontend_ref:
+        description: "Validated frontend ref from orchestration"
+        required: false
+        default: ""
+      orchestration_run_id:
+        description: "Orchestration workflow run id"
+        required: false
+        default: ""
+
+concurrency:
+  group: frontend-release-${{ github.ref }}-${{ inputs.environment }}
+  cancel-in-progress: false
+
+env:
+  NODE_VERSION: "20"
+
+jobs:
+  release:
+    name: Build and deploy frontend
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Print release trace metadata
+        run: |
+          echo "environment=${{ inputs.environment }}"
+          echo "backend_ref=${{ inputs.backend_ref }}"
+          echo "frontend_ref=${{ inputs.frontend_ref }}"
+          echo "orchestration_run_id=${{ inputs.orchestration_run_id }}"
+
+      - name: Build frontend
+        env:
+          NEXT_PUBLIC_API_BASE_URL: ${{ secrets.NEXT_PUBLIC_API_BASE_URL }}
+          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
+          NEXT_PUBLIC_BASE_URL: ${{ secrets.NEXT_PUBLIC_BASE_URL }}
+          NEXT_PUBLIC_WS_URL: ${{ secrets.NEXT_PUBLIC_WS_URL }}
+        run: npm run build
+
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Deploy frontend service
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_FRONTEND_SERVICE: ${{ secrets.RAILWAY_FRONTEND_SERVICE }}
+        run: railway up --service "${RAILWAY_FRONTEND_SERVICE}" --detach
+
+      - name: Verify frontend health
+        env:
+          FRONTEND_HEALTHCHECK_URL: ${{ secrets.FRONTEND_HEALTHCHECK_URL || secrets.NEXT_PUBLIC_BASE_URL }}
+        run: |
+          if [ -z "${FRONTEND_HEALTHCHECK_URL}" ]; then
+            echo "FRONTEND_HEALTHCHECK_URL not configured; skipping frontend health probe."
+            exit 0
+          fi
+          TARGET="${FRONTEND_HEALTHCHECK_URL%/}"
+          curl -fsS "${TARGET}" > /dev/null
