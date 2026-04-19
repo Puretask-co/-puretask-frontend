@@ -1,18 +1,46 @@
 # Backend API Endpoints Expected by the Frontend
 
+## Contract ownership (P0.1)
+
+- Backend canonical source: `puretask-backend/docs/active/BACKEND_ENDPOINTS.md`.
+- This file is the frontend mirror and must stay aligned with the backend canonical source.
+- Contract updates must be validated with `npm run test:api` and `npm run verify:fullstack`.
+
+---
+
 This document lists all REST API endpoints the PureTask frontend expects the backend to implement. Paths are relative to the API base URL (`NEXT_PUBLIC_API_URL` or `NEXT_PUBLIC_API_BASE_URL`).
 
 For Trust-Fintech integration details (auth, response contracts, roles, errors, CORS), see [TRUST_BACKEND_INTEGRATION.md](./TRUST_BACKEND_INTEGRATION.md).
+
+**What UI to build from the backend:** See backend canonical `docs/active/BACKEND_UI_SPEC.md` for screens, data to show, actions, and states (empty, 401, 403, 404, 501) derived from the API.
 
 **Implemented:** `GET /bookings/me` and `GET /cleaners/:cleanerId/reviews` return real data. See Bookings & Jobs and Cleaners below. Referral, job photos, cleaner schedule range, check-in optional fields, and admin resolve-dispute path are documented in their sections.
 
 ---
 
-## Config (optional)
+## Idempotency-Key (audit R12)
+
+For safe retries and to avoid double charges or duplicate state, send a unique **`Idempotency-Key`** header (e.g. UUID or `action-userId-timestamp`) on these endpoints. Same key + same body returns the stored response; same key + different body returns 409. Keys are scoped by key only (not by endpoint); use one key per logical operation. TTL 24h; cleanup runs hourly.
+
+| Method | Path | Notes |
+|--------|------|-------|
+| POST | `/jobs` | Create job |
+| POST | `/jobs/:jobId/pay` | Create payment intent for job |
+| POST | `/jobs/:jobId/transition` | Accept, cancel, complete, approve (lifecycle) |
+| POST | `/tracking/:jobId/approve` | Client approve (rating, tip, feedback) |
+| POST | `/payments/credits` | Buy credits (wallet top-up) |
+| POST | `/credits/checkout` | Checkout session for credits |
+| POST | Trust: `/api/credits/buy` (or equivalent) | Trust adapter buy credits |
+
+---
+
+## Config (optional, public, no auth)
 
 | Method | Path | Description |
 |--------|------|-------------|
-| GET | `/config/job-status` | Optional. Returns `{ statuses: string[], terminal?: string[], transitions?: Record<string, string[]>, labels?: Record<string, string> }`. When implemented, frontend can use it for status/transition logic via `useJobStatusConfig`; otherwise uses `src/constants/jobStatus.ts`. |
+| GET | `/config/job-status` | **Optional.** Canonical job statuses, events, transitions, event permissions. Response: `{ data: { statuses, events, transitions, eventPermissions } }`. Use so frontend/n8n stay in sync with backend. If the endpoint is missing or fails, the frontend should fall back to static constants (e.g. `src/constants/jobStatus.ts`). Frontend can implement `getJobStatusConfig()` (service) and `useJobStatusConfig()` (hook, e.g. 5 min stale) exposing `getLabel`, `canTransition`, `isTerminal`, `isFromServer`. |
+
+**Frontend integration:** Job-status config wiring in this repo uses `src/services/config.service.ts` and `src/hooks/useJobStatusConfig.ts` with fallback to `src/constants/jobStatus.ts`.
 
 ---
 
@@ -92,8 +120,7 @@ For Trust-Fintech integration details (auth, response contracts, roles, errors, 
 | Method | Path | Description |
 |--------|------|-------------|
 | POST | `/jobs` | Create job |
-| GET | `/jobs/:jobId` | Get job → `{ data: { job } }`. |
-| GET | `/jobs/:jobId/details` | **Full job-details UI:** one payload → `job`, `cleaner`, `checkins`, `photos`, `ledgerEntries`, `paymentIntent`, `payout`. Response: `{ data: JobDetailsResponse }`. See [JOB_DETAILS_API.md](./JOB_DETAILS_API.md) and “Job details & tracking” below. Require ownership. |
+| GET | `/jobs/:jobId` | Get job |
 | GET | `/jobs/me` | My jobs |
 | GET | `/jobs/client/:clientId` | Client's jobs |
 | GET | `/jobs/cleaner/:cleanerId` | Cleaner's jobs |
@@ -103,29 +130,29 @@ For Trust-Fintech integration details (auth, response contracts, roles, errors, 
 | POST | `/jobs/:id/complete` | Complete job |
 | POST | `/jobs/:id/rate` | Rate job |
 | POST | `/jobs/:id/transition` | State transition (e.g. accept) |
-| GET | `/jobs/:jobId/timeline` | Timeline events for stepper + client receipt (ASC). Event types: job_assigned, en_route_sent, gps_check_in, before_photos_uploaded, …, job_submitted, client_approved, dispute_opened, dispute_resolved. |
 | POST | `/jobs/:jobId/photos` | Add before/after photo (body: `type`: "before"\|"after", `photoUrl`: string). Cleaner only; use after presigned upload. |
-| POST | `/jobs/:jobId/photos/commit` | After presigned upload: body `kind`, `key`, `contentType`, `bytes`. Persist photo + create timeline event (before_photos_uploaded / after_photos_uploaded). |
+| POST | `/jobs/:jobId/photos/commit` | Record S3/R2 upload in DB (body: `key`, `kind`: "before"\|"after"\|"client_dispute", `contentType`, `bytes`, optional `publicUrl`). Emits timeline events when MIN_BEFORE_PHOTOS / MIN_AFTER_PHOTOS met. Cleaner for before/after; client for client_dispute. |
+| GET | `/jobs/:jobId/timeline` | Job events in chronological order (ASC) for stepper / client receipt. |
 
 ---
 
-## Uploads (photo flow)
+## Uploads (S3/R2 signed URLs)
 
 | Method | Path | Description |
 |--------|------|-------------|
-| POST | `/uploads/sign` | Body: `jobId`, `kind` ("before"\|"after"\|"client_dispute"), `fileName`, `contentType`, `bytes`. Returns `putUrl`, `key`, `publicUrl?`. Frontend: PUT to putUrl then POST /jobs/:jobId/photos/commit. |
+| POST | `/uploads/sign` | Get signed PUT URL for job photo (body: `jobId`, `kind`: "before"\|"after"\|"client_dispute", `contentType`, `fileName`, `bytes`). Returns `putUrl`, `key`, `publicUrl`. Requires STORAGE_* env. |
 
 ---
 
-## Tracking (check-in / check-out)
+## Tracking (check-in / check-out / approve / dispute)
 
 | Method | Path | Description |
 |--------|------|-------------|
-| GET | `/tracking/:jobId` | Job tracking state (timeline events + current cleaner location from latest `cleaner.location_updated`). Use for **live presence** (poll every 5–10s or websockets later). |
+| GET | `/tracking/:jobId` | Job tracking state |
 | POST | `/tracking/:jobId/check-in` | Check in (body: `location`: { latitude, longitude, accuracy? }, `beforePhotos`: string[], optional `accuracyM`, `source`: "device"\|"manual_override"). Cleaner only. |
 | POST | `/tracking/:jobId/check-out` | Check out (after photos, notes). Cleaner only. |
-| POST | `/tracking/:jobId/approve` | Client approve job (auth + job ownership). Body: `{ rating?, note? }`. Release escrow, create `client_approved` timeline event. |
-| POST | `/tracking/:jobId/dispute` | Client open dispute (auth + job ownership). Body: `{ reason, details }`. Create dispute row, set job disputed, hold earnings. |
+| POST | `/tracking/:jobId/approve` | Client approves completed job, releases escrow; optional rating/tip. |
+| POST | `/tracking/:jobId/dispute` | Client disputes completed job (body: reason, description, etc.). |
 
 ---
 
@@ -435,14 +462,11 @@ For Trust-Fintech integration details (auth, response contracts, roles, errors, 
 
 | Method | Path | Description |
 |--------|------|-------------|
-| GET | `/cleaner/progress` | Progress hub (level, core/stretch/maintenance %, next actions, active rewards; optional next_best_actions, recovery_steps) |
-| GET | `/cleaner/goals` | List goals with progress; include type (core\|stretch\|maintenance), counts_when?, reward_preview? |
-| GET | `/cleaner/badges` | List badges with earned status (id, name, icon, earned, earned_date, how_to_earn, category) |
-| GET | `/cleaner/rewards` | Active rewards, reward_history, choice_eligible (for Rewards Center tabs) |
-| GET | `/cleaner/stats` | Metrics: on_time_rate, acceptance_rate, photo_compliance, avg_rating, disputes_opened_lost, add_on_completions |
-| GET | `/cleaner/maintenance` | progress_paused, progress_paused_reason, recovery_steps (optional if in progress) |
-| POST | `/cleaner/rewards/choice/:choiceGroupId/select` | Select one reward (body: { reward_id }) |
+| GET | `/cleaner/progress` | Progress hub (level, core/stretch/maintenance %, next actions, active rewards) |
+| GET | `/cleaner/goals` | List goals (already in Cleaner Enhanced) |
 | GET | `/cleaners/:id` | When used for public profile, may include `level`, `badges` (array of { id, name, icon? }) for client trust signals |
+
+**Note:** POST `/cleaner/rewards/choice/:choiceGroupId/select` (body: `{ reward_id }`) is in the gamification spec; frontend may call it for choice reward selection.
 
 ---
 
@@ -453,7 +477,7 @@ For Trust-Fintech integration details (auth, response contracts, roles, errors, 
 | GET | `/admin/settings` | System settings |
 | PATCH | `/admin/settings` | Update setting |
 | GET | `/admin/settings/feature-flags` | Feature flags |
-| GET | `/admin/settings/audit-log` | Audit log (params: limit). **Required:** log all admin actions — see [ADMIN_AUDIT_LOG.md](./ADMIN_AUDIT_LOG.md) (resolve dispute, overrides, credit changes). |
+| GET | `/admin/settings/audit-log` | Audit log (params: limit) |
 | GET | `/admin/communication/templates` | Templates |
 | POST | `/admin/communication/send` | Send message |
 | GET | `/admin/communication/analytics` | Communication analytics |
@@ -487,37 +511,14 @@ For Trust-Fintech integration details (auth, response contracts, roles, errors, 
 
 ---
 
-## Job details & tracking (for animations)
-
-The job-details UI (timeline rail, reliability ring, ledger flow, photos, presence) uses a **two-call pattern**:
-
-1. **Static job details (once):** **GET /jobs/:jobId/details**  
-   Returns in one payload: `job`, `cleaner` (incl. `reliability_score`, tier, avg_rating, jobs_completed), `photos`, `checkins`, `ledgerEntries`, `paymentIntent`, `payout`.  
-   Response shape: `{ data: JobDetailsResponse }`. Frontend types: [JOB_DETAILS_API.md](./JOB_DETAILS_API.md) and `src/types/jobDetails.ts`. Paste-ready backend route + SQL: [BACKEND_JOB_DETAILS_IMPLEMENTATION.md](./BACKEND_JOB_DETAILS_IMPLEMENTATION.md).  
-   **Backend must:** protect with `requireOwnership("job", "jobId")` to prevent leaks.
-
-2. **Live presence (polling):** **GET /tracking/:jobId**  
-   Returns job tracking state: timeline events + **current cleaner location** from latest `cleaner.location_updated` event.  
-   Frontend polls every 5–10s (or uses websockets later) to update approach dot and status transitions.
-
-**Required backend fields for animations** (already in DB): job (id, status, scheduled/actual times, address, lat/lng, cleaner_id, credit_amount, cleaning_type); cleaner (reliability_score, tier, avg_rating, jobs_completed); credit_ledger (delta_credits, reason, created_at); payment_intents (status, amount_cents, etc.); payouts (status, amount_cents, updated_at); job_checkins or tracking events for presence.
-
-**Best practice:** Keep live GPS/presence out of `/jobs/:jobId/details`. Use `/jobs/:jobId/details` for static-ish UI data and `/tracking/:jobId` for live presence.
-
-**UI → data reference:** Component-to-data-to-DB-to-API mapping and fallbacks: [PURETASK_INTERACTIVE_UI_DATA_GUIDE.md](./PURETASK_INTERACTIVE_UI_DATA_GUIDE.md).
-
----
-
 ## Notes
 
 - **Base URL**: Configure via `NEXT_PUBLIC_API_URL` or `NEXT_PUBLIC_API_BASE_URL`.
 - **Auth**: Most endpoints expect `Authorization: Bearer <token>`.
 - **Trust API** uses paths prefixed with `/api/` (credits, billing, appointments); the main app uses paths without that prefix.
 - **Path conventions**: Some services may expect different shapes; this list reflects current frontend usage.
-- **Gamification**: Full request/response shapes and data model: [GAMIFICATION_BACKEND_SPEC.md](./GAMIFICATION_BACKEND_SPEC.md) (or GAMIFICATION_BACKEND_IMPLEMENTATION_GUIDE.md).
-- **Recently implemented (backend):** `GET /bookings/me` (real client bookings), `GET /cleaners/:id/reviews` (paginated reviews), `POST /admin/jobs/:jobId/resolve-dispute`, `POST /referral/send`, `GET /referral/me`, `POST /jobs/:jobId/photos`, `GET /cleaner/schedule?from=&to=`, and check-in body optional `accuracyM`, `source`. Trust live checklist returns `id`, `completed`, `completedAtISO` (labels on frontend). See DECISIONS.md for data ownership (labels/copy).
-
-**Frontend wiring (this repo):** Optional GET /config/job-status is wired: `src/services/config.service.ts` (`getJobStatusConfig`), `src/hooks/useJobStatusConfig.ts` (status/transition logic with fallback to `src/constants/jobStatus.ts`). Config (optional) is documented above; [FRONTEND_QA_COMPLETE_REFERENCE.md](./FRONTEND_QA_COMPLETE_REFERENCE.md) Product/alignment mentions this and `useJobStatusConfig`.
+- **Gamification**: Full request/response shapes and data model are documented in this file; if backend behavior changes, update this contract section first and re-run `npm run test:api`.
+- **Recently implemented (backend)**: `GET /bookings/me` (real client bookings), `GET /cleaners/:id/reviews` (paginated reviews), `POST /admin/jobs/:jobId/resolve-dispute`, `POST /referral/send`, `GET /referral/me`, `POST /jobs/:jobId/photos`, `GET /cleaner/schedule?from=&to=`, and check-in body optional `accuracyM`, `source`.
 
 ---
 
@@ -551,3 +552,12 @@ These routes exist for frontend compatibility but return empty/hardcoded data or
 - **Search** (`/search/global`, `/search/autocomplete`): Return empty when query &lt; 2 chars; otherwise use DB. Not stubs.
 - **Holidays**: Returns real data from `listHolidays()`; empty only on error (fallback).
 - **Gamification** (e.g. next-best-actions, badges): When `gamification_enabled` is false, returns empty by design.
+
+---
+
+## Integration status notes
+
+- `GET /jobs/:jobId/details`, `GET /tracking/:jobId`, `GET /bookings/me`, and `GET /cleaners/:id/reviews` are implemented and consumed by frontend services/hooks.
+- Backend serves routes at `/` and `/api/v1`; frontend must use one base consistently to avoid mixed-path regressions.
+- Known non-blocking stubs still documented above: `GET /client/payment-methods`, `PATCH /notifications/:id/read`, `POST /notifications/read-all`.
+- Contract drift should be caught by `npm run test:api` and `npm run verify:fullstack`.

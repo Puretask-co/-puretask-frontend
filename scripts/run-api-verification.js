@@ -12,9 +12,15 @@
 const fs = require('fs');
 const path = require('path');
 
-const API_BASE = process.env.API_BASE || 'http://localhost:4000';
-const TEST_EMAIL = process.env.TEST_EMAIL || 'client@test.com';
-const TEST_PASSWORD = process.env.TEST_PASSWORD || 'TestPass123!';
+const API_BASE =
+  process.env.API_BASE ||
+  process.env.NEXT_PUBLIC_API_BASE_URL ||
+  process.env.NEXT_PUBLIC_API_URL ||
+  'http://localhost:4000';
+const TEST_EMAIL = process.env.TEST_EMAIL || process.env.E2E_CLIENT_EMAIL || 'client@test.com';
+const TEST_PASSWORD =
+  process.env.TEST_PASSWORD || process.env.E2E_CLIENT_PASSWORD || 'TestPass123!';
+const REQUEST_ID = process.env.REQUEST_ID || `frontend-contract-${Date.now()}`;
 
 const results = [];
 let token = null;
@@ -32,6 +38,8 @@ async function fetchJson(url, opts = {}) {
     headers: {
       'Content-Type': 'application/json',
       Accept: 'application/json',
+      'x-request-id': REQUEST_ID,
+      'x-correlation-id': REQUEST_ID,
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(opts.headers || {}),
     },
@@ -96,7 +104,87 @@ async function run() {
     return;
   }
 
-  // 3. Credits
+  // 3. Contract-specific checks (P0.1)
+  try {
+    const { res, body, durationMs } = await fetchJson(`${API_BASE}/config/job-status`);
+    const payload = body?.data ?? body;
+    const ok =
+      res.ok &&
+      Array.isArray(payload?.statuses) &&
+      payload?.events &&
+      payload?.transitions &&
+      payload?.eventPermissions;
+    log(
+      'GET /config/job-status',
+      ok,
+      res.status,
+      durationMs,
+      ok ? `statuses=${payload.statuses.length}` : (body?.message || 'Invalid canonical status payload'),
+      !ok ? 'Expected canonical payload with statuses/events/transitions/eventPermissions.' : ''
+    );
+  } catch (e) {
+    log('GET /config/job-status', false, 0, 0, e.message);
+  }
+
+  try {
+    const { res, body, durationMs } = await fetchJson(`${API_BASE}/bookings/me`);
+    const ok = res.ok && Array.isArray(body?.bookings);
+    log(
+      'GET /bookings/me',
+      ok,
+      res.status,
+      durationMs,
+      ok ? `bookings=${body.bookings.length}` : (body?.message || 'Invalid bookings shape'),
+      !ok ? 'Expected `{ bookings: [...] }` for authenticated clients.' : ''
+    );
+  } catch (e) {
+    log('GET /bookings/me', false, 0, 0, e.message);
+  }
+
+  try {
+    const { res, body, durationMs } = await fetchJson(`${API_BASE}/referral/me`);
+    const ok =
+      res.ok &&
+      typeof body?.code === 'string' &&
+      typeof body?.totalReferrals === 'number' &&
+      typeof body?.pendingReferrals === 'number' &&
+      typeof body?.qualifiedReferrals === 'number' &&
+      typeof body?.totalEarned === 'number';
+    log(
+      'GET /referral/me',
+      ok,
+      res.status,
+      durationMs,
+      ok ? `code=${body.code}` : (body?.message || 'Invalid referral stats shape'),
+      !ok ? 'Expected referral stats shape from backend contract.' : ''
+    );
+  } catch (e) {
+    log('GET /referral/me', false, 0, 0, e.message);
+  }
+
+  try {
+    const { res, body, durationMs } = await fetchJson(`${API_BASE}/cleaners/test-cleaner-id/reviews?page=1&per_page=5`);
+    const ok =
+      res.ok ||
+      (res.status === 404 && body?.error?.code === 'NOT_FOUND') ||
+      res.status === 403;
+    log(
+      'GET /cleaners/:id/reviews',
+      ok,
+      res.status,
+      durationMs,
+      ok
+        ? res.ok
+          ? `reviews=${Array.isArray(body?.reviews) ? body.reviews.length : 0}`
+          : 'Expected auth/ownership or not-found for synthetic cleaner id'
+        : (body?.message || 'Unexpected error'),
+      !ok ? 'Expected `{ reviews, page, per_page, total }` for valid cleaner id.' : ''
+    );
+  } catch (e) {
+    log('GET /cleaners/:id/reviews', false, 0, 0, e.message);
+  }
+
+  // 4. Credits
   try {
     const { res, body, durationMs } = await fetchJson(`${API_BASE}/api/credits/balance`);
     const ok = res.ok && typeof body?.balance === 'number';
@@ -156,7 +244,7 @@ async function run() {
     log('POST /credits/checkout', false, 0, 0, e.message);
   }
 
-  // 4. Billing
+  // 5. Billing
   try {
     const { res, body, durationMs } = await fetchJson(`${API_BASE}/api/billing/invoices`);
     const ok = res.ok && Array.isArray(body?.invoices);
@@ -210,7 +298,7 @@ async function run() {
     log('POST /client/invoices/:id/pay', false, 0, 0, e.message);
   }
 
-  // 5. Live appointment
+  // 6. Live appointment
   try {
     const { res, body, durationMs } = await fetchJson(
       `${API_BASE}/api/appointments/test-booking-id/live`
@@ -255,18 +343,20 @@ async function run() {
     log('POST /api/appointments/:bookingId/events', false, 0, 0, e.message);
   }
 
-  // 6. Reliability
+  // 7. Reliability
   try {
     const { res, body, durationMs } = await fetchJson(
       `${API_BASE}/cleaners/test-cleaner-id/reliability`
     );
-    const ok = res.ok || res.status === 404;
+    const ok = res.ok || res.status === 404 || res.status === 403;
     log(
       'GET /cleaners/:cleanerId/reliability',
       ok,
       res.status,
       durationMs,
-      ok ? (res.ok ? 'OK' : '404 for unknown cleaner') : 'Unexpected error',
+      ok
+        ? (res.ok ? 'OK' : (res.status === 403 ? 'Expected auth/ownership rejection' : '404 for unknown cleaner'))
+        : 'Unexpected error',
       ''
     );
   } catch (e) {
@@ -311,7 +401,32 @@ function writeReport() {
 
   const outPath = path.join(__dirname, '..', 'docs', 'TEST_RESULTS.md');
   fs.writeFileSync(outPath, md, 'utf8');
-  console.log(`\nReport written to ${outPath}\n`);
+  const summaryPath = path.join(__dirname, '..', 'api-verification-summary.json');
+  fs.writeFileSync(
+    summaryPath,
+    JSON.stringify(
+      {
+        generatedAt: ts,
+        apiBase: API_BASE,
+        passed,
+        total,
+        failed: total - passed,
+        requestId: REQUEST_ID,
+        // Never persist auth tokens in artifacts/logs.
+        results,
+      },
+      null,
+      2
+    ),
+    'utf8'
+  );
+  console.log(`\nReport written to ${outPath}`);
+  console.log(`Summary written to ${summaryPath}\n`);
+
+  if (passed !== total) {
+    console.error(`API verification failed: ${passed}/${total} passed.`);
+    process.exitCode = 1;
+  }
 }
 
 run().catch((e) => {

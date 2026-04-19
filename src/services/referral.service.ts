@@ -9,12 +9,11 @@ export const referralService = {
   },
 
   getMe: async (): Promise<{
-    referral_code?: string;
-    referral_link?: string;
-    total_referrals?: number;
-    completed_bookings?: number;
-    pending_rewards?: number;
-    total_earned?: number;
+    code?: string;
+    totalReferrals?: number;
+    pendingReferrals?: number;
+    qualifiedReferrals?: number;
+    totalEarned?: number;
     recent_referrals?: Array<{ id: string; name: string; email: string; status: string; reward: number; date: string }>;
   }> => {
     return apiClient.get('/referral/me');
