@@ -28,7 +28,9 @@ export default function CleanerProfilePage() {
   const router = useRouter();
   const cleanerId = params.id as string;
   const [reviewPage, setReviewPage] = useState(1);
-  
+  const [showWhatMeans, setShowWhatMeans] = useState(false);
+
+
   const { data: cleanerData, isLoading: loadingCleaner, isError: cleanerError } = useCleaner(cleanerId);
   const { data: reviewsData, isLoading: loadingReviews } = useCleanerReviews(cleanerId, reviewPage);
   const { data: reliabilityData } = useQuery({
@@ -77,7 +79,6 @@ export default function CleanerProfilePage() {
   const cleanerLevel = (cleaner as { level?: number }).level ?? null;
   const topBadges: { id: string; name: string; icon?: string }[] =
     (cleaner as { badges?: { id: string; name: string; icon?: string }[] }).badges?.slice(0, 3) ?? [];
-  const [showWhatMeans, setShowWhatMeans] = useState(false);
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
