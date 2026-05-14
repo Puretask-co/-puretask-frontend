@@ -102,7 +102,6 @@ export function Footer({ className }: FooterProps) {
               <li><Link href="/cleaner/ai-assistant" className={footerLinkClass}>AI Assistant</Link></li>
               <li><Link href="/cleaner/progress" className={footerLinkClass}>Progress</Link></li>
               <li><Link href="/referral" className={footerLinkClass}>Referral</Link></li>
-              <li><Link href="/api-test" className="text-xs text-gray-500 hover:text-gray-400 transition-colors">API Test</Link></li>
             </ul>
           </div>
         </div>

@@ -1,5 +1,6 @@
 import axios, { AxiosError, AxiosRequestConfig } from 'axios';
 import { API_CONFIG, STORAGE_KEYS } from './config';
+import { generateIdempotencyKey, IDEMPOTENCY_HEADER } from './idempotency';
 
 // Create axios instance
 const api = axios.create({
@@ -10,7 +11,7 @@ const api = axios.create({
   },
 });
 
-// Request interceptor - Attach Bearer token to every request (same key as apiClient)
+// Request interceptor - Attach Bearer token + Idempotency-Key for mutating requests
 api.interceptors.request.use(
   (config) => {
     const token =
@@ -18,6 +19,18 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+
+    // Auto-attach Idempotency-Key to mutating verbs (backend dedupes via DB table).
+    // Caller can override by setting the header explicitly on the request config.
+    const method = (config.method ?? 'get').toLowerCase();
+    if (method === 'post' || method === 'put' || method === 'patch' || method === 'delete') {
+      const existing =
+        config.headers[IDEMPOTENCY_HEADER] ?? config.headers[IDEMPOTENCY_HEADER.toLowerCase()];
+      if (!existing) {
+        config.headers[IDEMPOTENCY_HEADER] = generateIdempotencyKey();
+      }
+    }
+
     return config;
   },
   (error) => {

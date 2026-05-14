@@ -20,14 +20,17 @@ export function initPerformanceMonitoring() {
   // Track Core Web Vitals (optional; only if package is installed)
   void (async () => {
     try {
-      const vitals = await import(/* webpackMode: "weak" */ 'web-vitals').catch(() => null);
+      // Cast to bypass Next.js's bundled-types shim that exposes only onFID;
+      // the real web-vitals v5 dep we depend on provides onINP at runtime.
+      const vitals = (await import('web-vitals').catch(() => null)) as
+        | (typeof import('web-vitals') & { onINP?: (fn: (m: PerformanceMetric) => void) => void })
+        | null;
       if (!vitals) return;
-      const { onCLS, onFID, onFCP, onLCP, onTTFB } = vitals;
-      onCLS(sendToAnalytics);
-      onFID(sendToAnalytics);
-      onFCP(sendToAnalytics);
-      onLCP(sendToAnalytics);
-      onTTFB(sendToAnalytics);
+      vitals.onCLS?.(sendToAnalytics);
+      vitals.onINP?.(sendToAnalytics);
+      vitals.onFCP?.(sendToAnalytics);
+      vitals.onLCP?.(sendToAnalytics);
+      vitals.onTTFB?.(sendToAnalytics);
     } catch {
       // web-vitals not installed
     }
