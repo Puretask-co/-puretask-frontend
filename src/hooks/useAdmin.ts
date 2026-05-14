@@ -1,11 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { adminService } from '@/services/admin.service';
 import { useToast } from '@/contexts/ToastContext';
+import { qk } from '@/lib/queryKeys';
 
 // Dashboard Analytics Hooks
 export function useAdminStats() {
   return useQuery({
-    queryKey: ['admin', 'stats'],
+    queryKey: qk.admin.stats(),
     queryFn: () => adminService.getStats(),
     staleTime: 60 * 1000, // 1 minute
   });
@@ -13,7 +14,7 @@ export function useAdminStats() {
 
 export function useDailyStats(days: number = 30) {
   return useQuery({
-    queryKey: ['admin', 'daily-stats', days],
+    queryKey: qk.admin.dailyStats(days),
     queryFn: () => adminService.getDailyStats(days),
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
@@ -21,7 +22,7 @@ export function useDailyStats(days: number = 30) {
 
 export function useRevenueAnalytics(period: 'week' | 'month' | 'year' = 'month') {
   return useQuery({
-    queryKey: ['admin', 'revenue', period],
+    queryKey: qk.admin.revenue(period),
     queryFn: () => adminService.getRevenueAnalytics(period),
     staleTime: 5 * 60 * 1000,
   });
@@ -30,14 +31,14 @@ export function useRevenueAnalytics(period: 'week' | 'month' | 'year' = 'month')
 // User Management Hooks
 export function useAllUsers(params?: any) {
   return useQuery({
-    queryKey: ['admin', 'users', params],
+    queryKey: qk.admin.users(params),
     queryFn: () => adminService.getAllUsers(params),
   });
 }
 
 export function useAdminUser(userId: string) {
   return useQuery({
-    queryKey: ['admin', 'user', userId],
+    queryKey: qk.admin.user(userId),
     queryFn: () => adminService.getUser(userId),
     enabled: !!userId,
   });
@@ -51,7 +52,7 @@ export function useUpdateUserStatus() {
     mutationFn: ({ userId, status }: { userId: string; status: any }) =>
       adminService.updateUserStatus(userId, status),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
+      queryClient.invalidateQueries({ queryKey: qk.admin.users() });
       showToast('User status updated successfully', 'success');
     },
     onError: (error: any) => {
@@ -68,7 +69,7 @@ export function useUpdateUserRole() {
     mutationFn: ({ userId, role }: { userId: string; role: any }) =>
       adminService.updateUserRole(userId, role),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
+      queryClient.invalidateQueries({ queryKey: qk.admin.users() });
       showToast('User role updated successfully', 'success');
     },
     onError: (error: any) => {
@@ -84,7 +85,7 @@ export function useDeleteUser() {
   return useMutation({
     mutationFn: (userId: string) => adminService.deleteUser(userId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
+      queryClient.invalidateQueries({ queryKey: qk.admin.users() });
       showToast('User deleted successfully', 'success');
     },
     onError: (error: any) => {
@@ -96,14 +97,14 @@ export function useDeleteUser() {
 // Booking Management Hooks
 export function useAllBookings(params?: any) {
   return useQuery({
-    queryKey: ['admin', 'bookings', params],
+    queryKey: qk.admin.bookings(params),
     queryFn: () => adminService.getAllBookings(params),
   });
 }
 
 export function useAdminBooking(bookingId: string) {
   return useQuery({
-    queryKey: ['admin', 'booking', bookingId],
+    queryKey: qk.admin.booking(bookingId),
     queryFn: () => adminService.getBookingDetails(bookingId),
     enabled: !!bookingId,
   });
@@ -117,7 +118,7 @@ export function useUpdateBookingStatus() {
     mutationFn: ({ bookingId, status }: { bookingId: string; status: string }) =>
       adminService.updateBookingStatus(bookingId, status),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin', 'bookings'] });
+      queryClient.invalidateQueries({ queryKey: qk.admin.bookings() });
       showToast('Booking status updated successfully', 'success');
     },
     onError: (error: any) => {
@@ -129,7 +130,7 @@ export function useUpdateBookingStatus() {
 // Financial Hooks
 export function useAllTransactions(params?: any) {
   return useQuery({
-    queryKey: ['admin', 'transactions', params],
+    queryKey: qk.admin.transactions(params),
     queryFn: () => adminService.getAllTransactions(params),
   });
 }
@@ -149,7 +150,7 @@ export function useProcessRefund() {
       reason: string;
     }) => adminService.processRefund(transactionId, amount, reason),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin', 'transactions'] });
+      queryClient.invalidateQueries({ queryKey: qk.admin.transactions() });
       showToast('Refund processed successfully', 'success');
     },
     onError: (error: any) => {
@@ -160,7 +161,7 @@ export function useProcessRefund() {
 
 export function useFinancialReport(startDate: string, endDate: string) {
   return useQuery({
-    queryKey: ['admin', 'financial-report', startDate, endDate],
+    queryKey: qk.admin.financialReport(startDate, endDate),
     queryFn: () => adminService.getFinancialReport(startDate, endDate),
     enabled: !!startDate && !!endDate,
   });
@@ -169,7 +170,7 @@ export function useFinancialReport(startDate: string, endDate: string) {
 // System Settings Hooks
 export function useSystemSettings() {
   return useQuery({
-    queryKey: ['admin', 'settings'],
+    queryKey: qk.admin.settings(),
     queryFn: () => adminService.getAllSettings(),
   });
 }
@@ -182,7 +183,7 @@ export function useUpdateSetting() {
     mutationFn: ({ key, value }: { key: string; value: string }) =>
       adminService.updateSetting(key, value),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin', 'settings'] });
+      queryClient.invalidateQueries({ queryKey: qk.admin.settings() });
       showToast('Setting updated successfully', 'success');
     },
     onError: (error: any) => {
@@ -194,7 +195,7 @@ export function useUpdateSetting() {
 // Verification Hooks
 export function usePendingVerifications() {
   return useQuery({
-    queryKey: ['admin', 'verifications', 'pending'],
+    queryKey: qk.admin.verifications.pending,
     queryFn: () => adminService.getPendingVerifications(),
   });
 }
@@ -206,7 +207,7 @@ export function useApproveVerification() {
   return useMutation({
     mutationFn: (verificationId: string) => adminService.approveVerification(verificationId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin', 'verifications'] });
+      queryClient.invalidateQueries({ queryKey: qk.admin.verifications.all });
       showToast('Verification approved', 'success');
     },
     onError: (error: any) => {
@@ -223,7 +224,7 @@ export function useRejectVerification() {
     mutationFn: ({ verificationId, reason }: { verificationId: string; reason: string }) =>
       adminService.rejectVerification(verificationId, reason),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin', 'verifications'] });
+      queryClient.invalidateQueries({ queryKey: qk.admin.verifications.all });
       showToast('Verification rejected', 'success');
     },
     onError: (error: any) => {

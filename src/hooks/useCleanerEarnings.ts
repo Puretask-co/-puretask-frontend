@@ -1,17 +1,18 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { cleanerEarningsService } from '@/services/cleanerEarnings.service';
 import { useToast } from '@/contexts/ToastContext';
+import { qk } from '@/lib/queryKeys';
 
 export function useCleanerEarnings() {
   return useQuery({
-    queryKey: ['cleaner', 'earnings'],
+    queryKey: qk.cleaner.earnings(),
     queryFn: () => cleanerEarningsService.getEarnings(),
   });
 }
 
 export function useCleanerPayouts(params?: { page?: number; per_page?: number }) {
   return useQuery({
-    queryKey: ['cleaner', 'payouts', params],
+    queryKey: qk.cleaner.payouts(params),
     queryFn: () => cleanerEarningsService.getPayouts(params),
   });
 }
@@ -23,8 +24,8 @@ export function useRequestPayout() {
   return useMutation({
     mutationFn: (amount?: number) => cleanerEarningsService.requestPayout(amount),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['cleaner', 'earnings'] });
-      queryClient.invalidateQueries({ queryKey: ['cleaner', 'payouts'] });
+      queryClient.invalidateQueries({ queryKey: qk.cleaner.earnings() });
+      queryClient.invalidateQueries({ queryKey: qk.cleaner.payouts() });
       showToast('Payout requested successfully!', 'success');
     },
     onError: (error: any) => {

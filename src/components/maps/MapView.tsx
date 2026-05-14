@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
+import Image from 'next/image';
 import { MapPin } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -111,7 +112,14 @@ export function MapView({
     return (
       <div className={cn('relative bg-gray-200 rounded-lg overflow-hidden', className)} style={{ height }}>
         {process.env.NEXT_PUBLIC_MAPBOX_TOKEN ? (
-          <img src={staticMapUrl} alt="Map" className="w-full h-full object-cover" />
+          <Image
+            src={staticMapUrl}
+            alt="Map"
+            width={400}
+            height={400}
+            className="w-full h-full object-cover"
+            unoptimized
+          />
         ) : (
           <div className="flex items-center justify-center h-full text-gray-500">
             <div className="text-center">

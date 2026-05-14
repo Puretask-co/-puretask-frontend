@@ -2,17 +2,18 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { clientEnhancedService } from '@/services/clientEnhanced.service';
 import { useToast } from '@/contexts/ToastContext';
+import { qk } from '@/lib/queryKeys';
 
 export const useDashboardInsights = () => {
   return useQuery({
-    queryKey: ['client', 'dashboard', 'insights'],
+    queryKey: qk.client.dashboardInsights(),
     queryFn: () => clientEnhancedService.getInsights(),
   });
 };
 
 export const useRecommendations = () => {
   return useQuery({
-    queryKey: ['client', 'recommendations'],
+    queryKey: qk.client.recommendations(),
     queryFn: () => clientEnhancedService.getRecommendations(),
   });
 };
@@ -21,7 +22,7 @@ type DraftBookingResponse = { draft?: Record<string, unknown> };
 
 export const useDraftBooking = () => {
   return useQuery<DraftBookingResponse>({
-    queryKey: ['client', 'draft-booking'],
+    queryKey: qk.client.draftBooking(),
     queryFn: () => clientEnhancedService.getDraft() as Promise<DraftBookingResponse>,
   });
 };
@@ -33,7 +34,7 @@ export const useSaveDraftBooking = () => {
   return useMutation({
     mutationFn: (draft: any) => clientEnhancedService.saveDraft(draft),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['client', 'draft-booking'] });
+      queryClient.invalidateQueries({ queryKey: qk.client.draftBooking() });
       showToast('Draft saved', 'success');
     },
     onError: () => {
@@ -46,7 +47,7 @@ type LiveStatusResponse = { job?: { current_status?: string; events?: Array<{ ne
 
 export const useLiveJobStatus = (jobId: string, enabled = true) => {
   return useQuery<LiveStatusResponse>({
-    queryKey: ['client', 'jobs', jobId, 'live-status'],
+    queryKey: qk.client.jobLiveStatus(jobId),
     queryFn: async () => {
       const res = await clientEnhancedService.getLiveStatus(jobId);
       return (res ?? {}) as LiveStatusResponse;
@@ -72,21 +73,21 @@ export const useAddToCalendar = () => {
 
 export const useFavoriteRecommendations = () => {
   return useQuery({
-    queryKey: ['client', 'favorites', 'recommendations'],
+    queryKey: qk.client.favoritesRecommendations(),
     queryFn: () => clientEnhancedService.getFavoriteRecommendations(),
   });
 };
 
 export const useFavoriteInsights = () => {
   return useQuery({
-    queryKey: ['client', 'favorites', 'insights'],
+    queryKey: qk.client.favoritesInsights(),
     queryFn: () => clientEnhancedService.getFavoriteInsights(),
   });
 };
 
 export const useRecurringSuggestions = (id: string) => {
   return useQuery({
-    queryKey: ['client', 'recurring-bookings', id, 'suggestions'],
+    queryKey: qk.client.recurringBookingSuggestions(id),
     queryFn: () => clientEnhancedService.getRecurringSuggestions(id),
     enabled: !!id,
   });
@@ -99,7 +100,7 @@ export const useSkipRecurringBooking = () => {
   return useMutation({
     mutationFn: (id: string) => clientEnhancedService.skipRecurringBooking(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['recurring-bookings'] });
+      queryClient.invalidateQueries({ queryKey: qk.recurringBookings });
       showToast('Booking skipped', 'success');
     },
     onError: () => {
@@ -110,7 +111,7 @@ export const useSkipRecurringBooking = () => {
 
 export const usePreferences = () => {
   return useQuery({
-    queryKey: ['client', 'preferences'],
+    queryKey: qk.client.preferences(),
     queryFn: () => clientEnhancedService.getPreferences(),
   });
 };
@@ -122,7 +123,7 @@ export const useSavePreferences = () => {
   return useMutation({
     mutationFn: (preferences: any) => clientEnhancedService.savePreferences(preferences),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['client', 'preferences'] });
+      queryClient.invalidateQueries({ queryKey: qk.client.preferences() });
       showToast('Preferences saved', 'success');
     },
     onError: () => {
@@ -133,7 +134,7 @@ export const useSavePreferences = () => {
 
 export const useReviewInsights = () => {
   return useQuery({
-    queryKey: ['client', 'reviews', 'insights'],
+    queryKey: qk.client.reviewsInsights(),
     queryFn: () => clientEnhancedService.getReviewInsights(),
   });
 };

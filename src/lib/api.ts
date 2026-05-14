@@ -52,6 +52,10 @@ api.interceptors.response.use(
       if (typeof window !== 'undefined') {
         localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
         localStorage.removeItem(STORAGE_KEYS.USER_DATA);
+        // Clear the middleware session marker so the next navigation is
+        // gated correctly. Inline because importing from sessionMarker here
+        // would create a tight cycle on auth flows.
+        document.cookie = 'puretask_session=; Path=/; Max-Age=0; SameSite=Lax';
         if (!window.location.pathname.startsWith('/auth/login')) {
           const returnTo = window.location.pathname + window.location.search;
           window.location.href = `/auth/login?returnTo=${encodeURIComponent(returnTo)}`;

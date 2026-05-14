@@ -3,6 +3,7 @@ import { profileService, UpdateProfileData, ChangePasswordData } from '@/service
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/contexts/ToastContext';
 import { STORAGE_KEYS } from '@/lib/config';
+import { qk } from '@/lib/queryKeys';
 
 export function useProfile() {
   const { user, refreshUser } = useAuth();
@@ -11,7 +12,7 @@ export function useProfile() {
 
   // Get profile
   const { data: profile, isLoading, error } = useQuery({
-    queryKey: ['profile', user?.id],
+    queryKey: qk.profile(user?.id),
     queryFn: () => profileService.getProfile(),
     enabled: !!user,
   });
@@ -21,7 +22,7 @@ export function useProfile() {
     mutationFn: (data: UpdateProfileData) => profileService.updateProfile(data),
     onSuccess: (response) => {
       // Update cache
-      queryClient.setQueryData(['profile', user?.id], response);
+      queryClient.setQueryData(qk.profile(user?.id), response);
       
       // Update auth context
       if (response.user) {
@@ -41,7 +42,7 @@ export function useProfile() {
     mutationFn: (file: File) => profileService.uploadAvatar(file),
     onSuccess: (response) => {
       // Refresh profile
-      queryClient.invalidateQueries({ queryKey: ['profile', user?.id] });
+      queryClient.invalidateQueries({ queryKey: qk.profile(user?.id) });
       refreshUser();
       showToast('Avatar uploaded successfully!', 'success');
     },
@@ -54,7 +55,7 @@ export function useProfile() {
   const deleteAvatarMutation = useMutation({
     mutationFn: () => profileService.deleteAvatar(),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['profile', user?.id] });
+      queryClient.invalidateQueries({ queryKey: qk.profile(user?.id) });
       refreshUser();
       showToast('Avatar removed successfully!', 'success');
     },

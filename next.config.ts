@@ -72,8 +72,38 @@ const securityHeaders = [
       ]),
 ];
 
+const uploadsHost = (() => {
+  const raw = process.env.NEXT_PUBLIC_UPLOADS_BASE_URL;
+  if (!raw) return null;
+  try {
+    return new URL(raw).hostname;
+  } catch {
+    return null;
+  }
+})();
+
 const nextConfig = {
   // Run on port 3001 to avoid conflict with backend
+  reactStrictMode: true,
+  productionBrowserSourceMaps: false,
+  compiler: {
+    removeConsole: isDev ? false : { exclude: ['error', 'warn'] },
+  },
+  eslint: {
+    ignoreDuringBuilds: false,
+  },
+  typescript: {
+    ignoreBuildErrors: false,
+  },
+  images: {
+    remotePatterns: [
+      { protocol: 'https' as const, hostname: 'api.mapbox.com' },
+      { protocol: 'https' as const, hostname: '*.tiles.mapbox.com' },
+      ...(uploadsHost
+        ? [{ protocol: 'https' as const, hostname: uploadsHost }]
+        : []),
+    ],
+  },
   async redirects() {
     return [];
   },

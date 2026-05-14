@@ -15,7 +15,8 @@ import { ErrorDisplay } from '@/components/error/ErrorDisplay';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { useBooking, useCancelBooking } from '@/hooks/useBookings';
 import { useLiveJobStatus, useAddToCalendar } from '@/hooks/useClientEnhanced';
-import { useJobDetails, JOB_DETAILS_QUERY_KEY } from '@/hooks/useJobDetails';
+import { useJobDetails } from '@/hooks/useJobDetails';
+import { qk } from '@/lib/queryKeys';
 import { useJobTrackingPoll } from '@/hooks/useJobTrackingPoll';
 import JobDetailsTracking from '@/components/trust/JobDetailsTracking';
 import { NextActionCard } from '@/components/trust/NextActionCard';
@@ -98,9 +99,9 @@ function BookingDetailsContent() {
 
   const jobIdForApi = jobDetails?.job?.id ?? bookingId;
   const handleApproved = () => {
-    queryClient.invalidateQueries({ queryKey: ['booking', bookingId] });
-    queryClient.invalidateQueries({ queryKey: [...JOB_DETAILS_QUERY_KEY, bookingId] });
-    queryClient.invalidateQueries({ queryKey: ['bookings'] });
+    queryClient.invalidateQueries({ queryKey: qk.bookings.detail(bookingId) });
+    queryClient.invalidateQueries({ queryKey: qk.jobDetails(bookingId) });
+    queryClient.invalidateQueries({ queryKey: qk.bookings.all });
     showToast('Job approved. Payment has been released to the cleaner.', 'success');
   };
 

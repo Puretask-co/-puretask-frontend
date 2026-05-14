@@ -2,7 +2,8 @@
 // TanStack Query hooks for billing (Trust-Fintech REST)
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { apiGet, apiPost } from '@/lib/apiClient';
+import { apiClient } from '@/lib/api';
+import { qk } from '@/lib/queryKeys';
 import type { Invoice } from '@/types/trust';
 
 export type PayInvoiceRequest = {
@@ -12,32 +13,33 @@ export type PayInvoiceRequest = {
 export function usePayInvoice() {
   const queryClient = useQueryClient();
   return useMutation({
+    // Idempotency-Key is auto-attached by the axios interceptor for all POSTs.
     mutationFn: ({ invoiceId, payment_method }: { invoiceId: string } & PayInvoiceRequest) =>
-      apiPost<PayInvoiceRequest, { ok: boolean }>(
+      apiClient.post<{ ok: boolean }>(
         `/client/invoices/${encodeURIComponent(invoiceId)}/pay`,
         { payment_method }
       ),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['billing', 'invoices'] });
-      queryClient.invalidateQueries({ queryKey: ['credits', 'balance'] });
-      queryClient.invalidateQueries({ queryKey: ['credits', 'ledger'] });
+      queryClient.invalidateQueries({ queryKey: qk.billing.invoices() });
+      queryClient.invalidateQueries({ queryKey: qk.credits.balance() });
+      queryClient.invalidateQueries({ queryKey: qk.credits.ledger() });
     },
   });
 }
 
 export function useInvoices() {
   return useQuery({
-    queryKey: ['billing', 'invoices'],
+    queryKey: qk.billing.invoices(),
     queryFn: () =>
-      apiGet<{ invoices: Invoice[] }>('/api/billing/invoices'),
+      apiClient.get<{ invoices: Invoice[] }>('/api/billing/invoices'),
   });
 }
 
 export function useInvoice(invoiceId: string) {
   return useQuery({
-    queryKey: ['billing', 'invoice', invoiceId],
+    queryKey: qk.billing.invoice(invoiceId),
     queryFn: () =>
-      apiGet<Invoice>(
+      apiClient.get<Invoice>(
         `/api/billing/invoices/${encodeURIComponent(invoiceId)}`
       ),
     enabled: Boolean(invoiceId),

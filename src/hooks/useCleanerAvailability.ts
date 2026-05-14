@@ -1,10 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { cleanerAvailabilityService, WeeklyAvailability, TimeOff } from '@/services/cleanerAvailability.service';
 import { useToast } from '@/contexts/ToastContext';
+import { qk } from '@/lib/queryKeys';
 
 export function useCleanerAvailability() {
   return useQuery({
-    queryKey: ['cleaner', 'availability'],
+    queryKey: qk.cleaner.availability(),
     queryFn: () => cleanerAvailabilityService.getAvailability(),
   });
 }
@@ -16,8 +17,8 @@ export function useUpdateAvailability() {
   return useMutation({
     mutationFn: (availability: WeeklyAvailability) => cleanerAvailabilityService.updateAvailability(availability),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['cleaner', 'availability'] });
-      queryClient.invalidateQueries({ queryKey: ['cleaner', 'schedule'] });
+      queryClient.invalidateQueries({ queryKey: qk.cleaner.availability() });
+      queryClient.invalidateQueries({ queryKey: qk.cleaner.schedule() });
       showToast('Availability updated successfully!', 'success');
     },
     onError: (error: any) => {
@@ -28,14 +29,14 @@ export function useUpdateAvailability() {
 
 export function useCleanerSchedule(params?: { from?: string; to?: string }) {
   return useQuery({
-    queryKey: ['cleaner', 'schedule', params],
+    queryKey: qk.cleaner.schedule(params),
     queryFn: () => cleanerAvailabilityService.getSchedule(params),
   });
 }
 
 export function useTimeOff() {
   return useQuery({
-    queryKey: ['cleaner', 'time-off'],
+    queryKey: qk.cleaner.timeOff(),
     queryFn: () => cleanerAvailabilityService.getTimeOff(),
   });
 }
@@ -54,8 +55,8 @@ export function useAddTimeOff() {
       reason?: string;
     }) => cleanerAvailabilityService.addTimeOff(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['cleaner', 'time-off'] });
-      queryClient.invalidateQueries({ queryKey: ['cleaner', 'schedule'] });
+      queryClient.invalidateQueries({ queryKey: qk.cleaner.timeOff() });
+      queryClient.invalidateQueries({ queryKey: qk.cleaner.schedule() });
       showToast('Time off added successfully!', 'success');
     },
     onError: (error: any) => {
@@ -71,8 +72,8 @@ export function useDeleteTimeOff() {
   return useMutation({
     mutationFn: (id: string) => cleanerAvailabilityService.deleteTimeOff(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['cleaner', 'time-off'] });
-      queryClient.invalidateQueries({ queryKey: ['cleaner', 'schedule'] });
+      queryClient.invalidateQueries({ queryKey: qk.cleaner.timeOff() });
+      queryClient.invalidateQueries({ queryKey: qk.cleaner.schedule() });
       showToast('Time off removed successfully!', 'success');
     },
     onError: (error: any) => {

@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { apiClient } from '@/lib/api';
 import { STORAGE_KEYS } from '@/lib/config';
+import { setSessionMarker, clearSessionMarker } from '@/lib/sessionMarker';
 import { useToast } from '@/contexts/ToastContext';
 import type { User, LoginCredentials, RegisterData, AuthResponse } from '@/types/api';
 
@@ -35,6 +36,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           try {
             const parsedUser = JSON.parse(savedUser);
             setUser(parsedUser);
+            // Re-sync the middleware session marker in case the cookie was
+            // cleared by browser policy while localStorage persisted.
+            if (parsedUser?.role) setSessionMarker(parsedUser);
           } catch (parseError) {
             console.error('Failed to parse saved user:', parseError);
             localStorage.removeItem(STORAGE_KEYS.USER_DATA);
@@ -51,6 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             }
             localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
             localStorage.removeItem(STORAGE_KEYS.USER_DATA);
+            clearSessionMarker();
             setUser(null);
           }
         }
@@ -59,6 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Clear invalid data
         localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
         localStorage.removeItem(STORAGE_KEYS.USER_DATA);
+        clearSessionMarker();
         setUser(null);
       } finally {
         setIsLoading(false);
@@ -83,10 +89,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, token);
       localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(user));
-      
+      setSessionMarker(user);
+
       setUser(user);
       showToast('Successfully logged in!', 'success');
-      
+
       return user;
     } catch (error: any) {
       let errorMsg =
@@ -119,6 +126,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, token);
       localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(user));
+      setSessionMarker(user);
       setUser(user);
       showToast('Account created successfully!', 'success');
       return user;
@@ -145,7 +153,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Clear storage
     localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
     localStorage.removeItem(STORAGE_KEYS.USER_DATA);
-    
+    clearSessionMarker();
+
     // Clear state
     setUser(null);
     
@@ -168,11 +177,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const response = await apiClient.get<{ user: User }>('/auth/me');
       
       localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(response.user));
+      setSessionMarker(response.user);
       setUser(response.user);
     } catch (error) {
       // If refresh fails, clear auth but don't redirect (let api interceptor handle it)
       localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
       localStorage.removeItem(STORAGE_KEYS.USER_DATA);
+      clearSessionMarker();
       setUser(null);
       throw error; // Re-throw so caller knows it failed
     }

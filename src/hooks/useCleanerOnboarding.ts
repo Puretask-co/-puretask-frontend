@@ -27,6 +27,7 @@ import {
   type RatesData,
   type BackgroundConsentData,
 } from '@/lib/api/cleanerOnboarding';
+import { qk } from '@/lib/queryKeys';
 
 export type OnboardingStep = 
   | 'terms'
@@ -65,7 +66,7 @@ export function useCleanerOnboarding() {
 
   // Get onboarding progress (includes current step)
   const { data: progressData, isLoading: progressLoading } = useQuery({
-    queryKey: ['onboarding-progress'],
+    queryKey: qk.onboardingProgress,
     queryFn: getOnboardingProgress,
     refetchInterval: 5000, // Refetch every 5 seconds
   });
@@ -100,7 +101,7 @@ export function useCleanerOnboarding() {
   const saveStepToDatabase = async (step: OnboardingStep) => {
     try {
       await saveCurrentStep(step);
-      queryClient.invalidateQueries({ queryKey: ['onboarding-progress'] });
+      queryClient.invalidateQueries({ queryKey: qk.onboardingProgress });
     } catch (error) {
       // Silently fail - step will still be saved in local state
       console.error('Failed to save step to database:', error);
@@ -132,7 +133,7 @@ export function useCleanerOnboarding() {
   const saveAgreementsMutation = useMutation({
     mutationFn: saveAgreements,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['onboarding-progress'] });
+      queryClient.invalidateQueries({ queryKey: qk.onboardingProgress });
       goToNextStep();
     },
   });
@@ -141,7 +142,7 @@ export function useCleanerOnboarding() {
   const saveBasicInfoMutation = useMutation({
     mutationFn: saveBasicInfo,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['onboarding-progress'] });
+      queryClient.invalidateQueries({ queryKey: qk.onboardingProgress });
       goToNextStep();
     },
   });
@@ -155,7 +156,7 @@ export function useCleanerOnboarding() {
   const verifyOTPMutation = useMutation({
     mutationFn: (data: PhoneVerificationData) => verifyOTP(data.phone_number, data.otp_code ?? ''),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['onboarding-progress'] });
+      queryClient.invalidateQueries({ queryKey: qk.onboardingProgress });
       goToNextStep();
     },
   });
@@ -164,7 +165,7 @@ export function useCleanerOnboarding() {
   const uploadFacePhotoMutation = useMutation({
     mutationFn: uploadFacePhoto,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['onboarding-progress'] });
+      queryClient.invalidateQueries({ queryKey: qk.onboardingProgress });
       goToNextStep();
     },
   });
@@ -174,7 +175,7 @@ export function useCleanerOnboarding() {
     mutationFn: ({ file, document_type }: { file: File; document_type: 'drivers_license' | 'passport' | 'state_id' }) =>
       uploadIDVerification(file, document_type),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['onboarding-progress'] });
+      queryClient.invalidateQueries({ queryKey: qk.onboardingProgress });
       goToNextStep();
     },
   });
@@ -183,7 +184,7 @@ export function useCleanerOnboarding() {
   const saveBackgroundConsentMutation = useMutation({
     mutationFn: saveBackgroundConsent,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['onboarding-progress'] });
+      queryClient.invalidateQueries({ queryKey: qk.onboardingProgress });
       goToNextStep();
     },
   });
@@ -196,7 +197,7 @@ export function useCleanerOnboarding() {
         ...prev,
         serviceAreasCount: variables.zip_codes.length,
       }));
-      queryClient.invalidateQueries({ queryKey: ['onboarding-progress'] });
+      queryClient.invalidateQueries({ queryKey: qk.onboardingProgress });
       goToNextStep();
     },
   });
@@ -210,7 +211,7 @@ export function useCleanerOnboarding() {
         ...prev,
         availableDays: activeDays,
       }));
-      queryClient.invalidateQueries({ queryKey: ['onboarding-progress'] });
+      queryClient.invalidateQueries({ queryKey: qk.onboardingProgress });
       goToNextStep();
     },
   });
@@ -219,7 +220,7 @@ export function useCleanerOnboarding() {
   const saveRatesMutation = useMutation({
     mutationFn: saveRates,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['onboarding-progress'] });
+      queryClient.invalidateQueries({ queryKey: qk.onboardingProgress });
       goToNextStep();
     },
   });
@@ -228,7 +229,7 @@ export function useCleanerOnboarding() {
   const completeOnboardingMutation = useMutation({
     mutationFn: completeOnboarding,
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['onboarding-progress'] });
+      queryClient.invalidateQueries({ queryKey: qk.onboardingProgress });
       router.push(data.redirect_to);
     },
   });

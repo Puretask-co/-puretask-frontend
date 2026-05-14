@@ -3,17 +3,18 @@ import { messageService } from '@/services/message.service';
 import { useToast } from '@/contexts/ToastContext';
 import { useWebSocket } from '@/contexts/WebSocketContext';
 import { useEffect } from 'react';
+import { qk } from '@/lib/queryKeys';
 
 export function useConversations() {
   return useQuery({
-    queryKey: ['conversations'],
+    queryKey: qk.conversations.all,
     queryFn: () => messageService.getConversations(),
   });
 }
 
 export function useConversation(userId: string) {
   return useQuery({
-    queryKey: ['conversation', userId],
+    queryKey: qk.conversations.detail(userId),
     queryFn: () => messageService.getConversation(userId),
     enabled: !!userId,
   });
@@ -21,7 +22,7 @@ export function useConversation(userId: string) {
 
 export function useMessages(conversationId?: string) {
   return useQuery({
-    queryKey: ['messages', conversationId],
+    queryKey: qk.messages.list(conversationId ?? ''),
     queryFn: () => {
       if (!conversationId) return Promise.resolve({ messages: [] });
       // Check if it's a job ID (UUID format) or conversation ID
@@ -53,8 +54,8 @@ export function useSendMessage() {
       return messageService.sendMessage({ recipient_id: recipientId, content, jobId });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['messages'] });
-      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      queryClient.invalidateQueries({ queryKey: qk.messages.all });
+      queryClient.invalidateQueries({ queryKey: qk.conversations.all });
     },
     onError: (error: any) => {
       showToast(error.response?.data?.error?.message || 'Failed to send message', 'error');
@@ -68,7 +69,7 @@ export function useMarkAsRead() {
   return useMutation({
     mutationFn: (messageId: string) => messageService.markAsRead(messageId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      queryClient.invalidateQueries({ queryKey: qk.conversations.all });
     },
   });
 }
@@ -81,9 +82,9 @@ export function useRealtimeMessages(conversationId?: string) {
   useEffect(() => {
     if (!socket || !isConnected || !conversationId) return;
 
-    const handleNewMessage = (message: any) => {
-      queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
-      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+    const handleNewMessage = (_message: any) => {
+      queryClient.invalidateQueries({ queryKey: qk.messages.list(conversationId) });
+      queryClient.invalidateQueries({ queryKey: qk.conversations.all });
     };
 
     socket.on('new_message', handleNewMessage);

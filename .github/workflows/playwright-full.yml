@@ -1,0 +1,43 @@
+name: Playwright E2E (full)
+
+# Manual + nightly. Requires a reachable backend; configure BACKEND_URL secret
+# if pointing at a deployed environment. The default playwright.config.ts
+# expects the local sibling repo at ../puretask-backend, which CI cannot
+# provide, so this workflow has to override the webServer config OR be run
+# against a deployed backend.
+
+on:
+  workflow_dispatch:
+  schedule:
+    # 06:00 UTC daily — adjust as needed
+    - cron: '0 6 * * *'
+
+jobs:
+  e2e:
+    name: Run Playwright E2E
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - name: Install Playwright browsers (chromium only)
+        run: npx playwright install --with-deps chromium
+      - name: Run Playwright (chromium only, deployed backend)
+        env:
+          # Override the local backend URL if you point this at a deployed env.
+          # Without this, the test will try to spin up the local sibling backend,
+          # which does not exist in CI and will fail.
+          PLAYWRIGHT_BASE_URL: ${{ secrets.PLAYWRIGHT_BASE_URL }}
+          NEXT_PUBLIC_API_BASE_URL: ${{ secrets.PLAYWRIGHT_API_URL }}
+        run: npx playwright test --project=chromium
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7

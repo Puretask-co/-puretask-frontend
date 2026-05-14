@@ -52,6 +52,26 @@ jobs:
           name: build
           path: .next
 
+  # Validate the Playwright config and install browsers on every PR/push.
+  # Does NOT run the actual E2E specs because playwright.config.ts depends on
+  # the backend being reachable at localhost:4000 (separate repo + DB + redis).
+  # To run the full suite, use the playwright-full workflow (manual trigger).
+  playwright-validate:
+    name: Playwright config check
+    runs-on: ubuntu-latest
+    needs: [build]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - name: Install Playwright browsers (chromium only)
+        run: npx playwright install --with-deps chromium
+      - name: Validate Playwright config (lists tests without running)
+        run: npx playwright test --list --project=chromium
+
   deploy:
     name: Deploy
     runs-on: ubuntu-latest

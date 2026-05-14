@@ -2,7 +2,8 @@
 // TanStack Query hooks for live appointments (Trust-Fintech REST)
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { apiGet, apiPost } from '@/lib/apiClient';
+import { apiClient } from '@/lib/api';
+import { qk } from '@/lib/queryKeys';
 import type { LiveAppointment } from '@/types/trust';
 
 export type AppointmentEventCreate = {
@@ -14,9 +15,9 @@ export type AppointmentEventCreate = {
 
 export function useLiveAppointment(bookingId: string) {
   return useQuery({
-    queryKey: ['appointments', 'live', bookingId],
+    queryKey: qk.appointments.live(bookingId),
     queryFn: () =>
-      apiGet<LiveAppointment>(
+      apiClient.get<LiveAppointment>(
         `/api/appointments/${encodeURIComponent(bookingId)}/live`
       ),
     enabled: Boolean(bookingId),
@@ -28,14 +29,15 @@ export function usePostAppointmentEvent(bookingId: string) {
   const qc = useQueryClient();
 
   return useMutation({
+    // Idempotency-Key is auto-attached by the axios interceptor for all POSTs.
     mutationFn: (payload: AppointmentEventCreate) =>
-      apiPost<AppointmentEventCreate, { ok: true }>(
+      apiClient.post<{ ok: true }>(
         `/api/appointments/${encodeURIComponent(bookingId)}/events`,
         payload
       ),
     onSuccess: async () => {
       await qc.invalidateQueries({
-        queryKey: ['appointments', 'live', bookingId],
+        queryKey: qk.appointments.live(bookingId),
       });
     },
   });

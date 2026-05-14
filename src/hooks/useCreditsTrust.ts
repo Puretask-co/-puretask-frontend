@@ -2,8 +2,8 @@
 // TanStack Query hooks for credits (Trust-Fintech REST)
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { apiGet, apiPost } from '@/lib/apiClient';
-import { generateIdempotencyKey, IDEMPOTENCY_HEADER } from '@/lib/idempotency';
+import { apiClient } from '@/lib/api';
+import { qk } from '@/lib/queryKeys';
 import type { CreditLedgerEntry, CreditsBalance } from '@/types/trust';
 
 export type BuyCreditsRequest = {
@@ -20,19 +20,16 @@ export type BuyCreditsResponse = {
 export function useBuyCredits() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (body: BuyCreditsRequest) => {
-      const idempotencyKey = generateIdempotencyKey();
-      return apiPost<BuyCreditsRequest, BuyCreditsResponse>('/credits/checkout', body, {
-        headers: { [IDEMPOTENCY_HEADER]: idempotencyKey },
-      });
-    },
+    // Idempotency-Key is auto-attached by the axios interceptor for all POSTs.
+    mutationFn: (body: BuyCreditsRequest) =>
+      apiClient.post<BuyCreditsResponse>('/credits/checkout', body),
     onSuccess: (data) => {
       const url = data?.checkoutUrl ?? data?.url;
       if (url && typeof window !== 'undefined') {
         window.location.href = url;
       }
-      queryClient.invalidateQueries({ queryKey: ['credits', 'balance'] });
-      queryClient.invalidateQueries({ queryKey: ['credits', 'ledger'] });
+      queryClient.invalidateQueries({ queryKey: qk.credits.balance() });
+      queryClient.invalidateQueries({ queryKey: qk.credits.ledger() });
     },
   });
 }
@@ -58,16 +55,16 @@ function toQueryString(filters: CreditsLedgerFilters) {
 
 export function useCreditsBalance() {
   return useQuery({
-    queryKey: ['credits', 'balance'],
-    queryFn: () => apiGet<CreditsBalance>('/api/credits/balance'),
+    queryKey: qk.credits.balance(),
+    queryFn: () => apiClient.get<CreditsBalance>('/api/credits/balance'),
   });
 }
 
 export function useCreditsLedger(filters: CreditsLedgerFilters) {
   const qs = toQueryString(filters);
   return useQuery({
-    queryKey: ['credits', 'ledger', filters],
+    queryKey: qk.credits.ledger(filters),
     queryFn: () =>
-      apiGet<{ entries: CreditLedgerEntry[] }>(`/api/credits/ledger${qs}`),
+      apiClient.get<{ entries: CreditLedgerEntry[] }>(`/api/credits/ledger${qs}`),
   });
 }

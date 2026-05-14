@@ -10,7 +10,7 @@ import {
   useLiveAppointment,
   usePostAppointmentEvent,
 } from '@/hooks/useLiveAppointmentTrust';
-import type { ApiError } from '@/lib/apiClient';
+import type { AxiosError } from 'axios';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
@@ -52,7 +52,7 @@ function LiveTrustContent() {
 
   const is501 =
     postEvent.isError &&
-    (postEvent.error as unknown as ApiError)?.status === 501 &&
+    (postEvent.error as AxiosError)?.response?.status === 501 &&
     (lastActionType === 'check_in' || lastActionType === 'check_out');
 
   const data = liveQ.data;
@@ -307,7 +307,9 @@ function LiveTrustContent() {
                 {postEvent.isPending && <p className="mt-2 text-sm text-gray-500">Posting…</p>}
                 {postEvent.isError && !is501 && (
                   <p className="mt-2 text-sm text-red-600">
-                    {(postEvent.error as unknown as ApiError)?.message ?? 'Failed to post event.'}
+                    {((postEvent.error as AxiosError<{ message?: string }>)?.response?.data?.message) ??
+                      (postEvent.error as Error)?.message ??
+                      'Failed to post event.'}
                   </p>
                 )}
               </CardContent>
