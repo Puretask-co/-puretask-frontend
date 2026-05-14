@@ -7,11 +7,22 @@ import { JobStepper, type StepKey } from '@/components/job/JobStepper';
 import { GradientButton } from '@/components/brand/GradientButton';
 import {
   sendEnRoute,
-  checkIn,
+  markArrived,
   submitJob,
   getJobTimeline,
+  getJobPhotos,
 } from '@/services/jobs';
 import type { TimelineEvent } from '@/services/jobs';
+
+async function getCurrentLocation(): Promise<GeolocationCoordinates> {
+  const pos = await new Promise<GeolocationPosition>((res, rej) =>
+    navigator.geolocation.getCurrentPosition(res, rej, {
+      enableHighAccuracy: true,
+      timeout: 10000,
+    })
+  );
+  return pos.coords;
+}
 
 export default function CleanerWorkflowPage() {
   const { jobId } = useParams<{ jobId: string }>();
@@ -53,21 +64,22 @@ export default function CleanerWorkflowPage() {
     }
 
     if (active === 'enroute') {
-      await sendEnRoute(jobId);
+      const coords = await getCurrentLocation();
+      await sendEnRoute(jobId, {
+        latitude: coords.latitude,
+        longitude: coords.longitude,
+        accuracy: coords.accuracy,
+      });
       setActive('checkin');
       return;
     }
 
     if (active === 'checkin') {
-      const pos = await new Promise<GeolocationPosition>((res, rej) =>
-        navigator.geolocation.getCurrentPosition(res, rej, {
-          enableHighAccuracy: true,
-          timeout: 10000,
-        })
-      );
-      await checkIn(jobId, {
-        lat: pos.coords.latitude,
-        lng: pos.coords.longitude,
+      const coords = await getCurrentLocation();
+      await markArrived(jobId, {
+        latitude: coords.latitude,
+        longitude: coords.longitude,
+        accuracy: coords.accuracy,
       });
       setActive('before');
       return;
@@ -84,7 +96,10 @@ export default function CleanerWorkflowPage() {
     }
 
     if (active === 'submit') {
-      await submitJob(jobId);
+      const photos = await getJobPhotos(jobId);
+      const afterUrls = photos.after.map((p) => p.url);
+      if (afterUrls.length === 0) return; // guardrail already shown in UI
+      await submitJob(jobId, afterUrls);
       r.push(`/client/job/${jobId}`);
       return;
     }

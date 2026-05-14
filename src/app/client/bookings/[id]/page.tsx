@@ -20,7 +20,7 @@ import { useJobTrackingPoll } from '@/hooks/useJobTrackingPoll';
 import JobDetailsTracking from '@/components/trust/JobDetailsTracking';
 import { NextActionCard } from '@/components/trust/NextActionCard';
 import { TrustBanner } from '@/components/trust/TrustBanner';
-import { approveJob } from '@/services/jobs';
+import { ApprovalRatingModal } from '@/components/job/ApprovalRatingModal';
 import { format } from 'date-fns';
 import { formatCurrency } from '@/lib/utils';
 import { getJobStatusLabel, getJobStatusBadgeClass, isEscrowHeld, shouldPollTracking } from '@/constants';
@@ -57,7 +57,7 @@ function BookingDetailsContent() {
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
   const [showShareModal, setShowShareModal] = useState(false);
-  const [approving, setApproving] = useState(false);
+  const [showApproveModal, setShowApproveModal] = useState(false);
 
   if (isLoading) {
     return (
@@ -96,22 +96,12 @@ function BookingDetailsContent() {
   const canCancel = ['pending', 'accepted', 'scheduled'].includes(booking.status);
   const canApproveOrDispute = booking.status === 'awaiting_approval'; // canonical: only from awaiting_approval
 
-  const handleApprove = async () => {
-    if (!bookingId || approving) return;
-    const jobIdForApi = jobDetails?.job?.id ?? bookingId;
-    setApproving(true);
-    try {
-      await approveJob(jobIdForApi, {});
-      queryClient.invalidateQueries({ queryKey: ['booking', bookingId] });
-      queryClient.invalidateQueries({ queryKey: [...JOB_DETAILS_QUERY_KEY, bookingId] });
-      queryClient.invalidateQueries({ queryKey: ['bookings'] });
-      showToast('Job approved. Payment has been released to the cleaner.', 'success');
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Failed to approve';
-      showToast(message, 'error');
-    } finally {
-      setApproving(false);
-    }
+  const jobIdForApi = jobDetails?.job?.id ?? bookingId;
+  const handleApproved = () => {
+    queryClient.invalidateQueries({ queryKey: ['booking', bookingId] });
+    queryClient.invalidateQueries({ queryKey: [...JOB_DETAILS_QUERY_KEY, bookingId] });
+    queryClient.invalidateQueries({ queryKey: ['bookings'] });
+    showToast('Job approved. Payment has been released to the cleaner.', 'success');
   };
 
   const showHeldCredits = booking && isEscrowHeld(booking.status);
@@ -133,9 +123,8 @@ function BookingDetailsContent() {
                 title="Review & complete"
                 description="The cleaning is done. Approve to release payment to your cleaner, or open a dispute if something wasn’t right."
                 primaryAction={{
-                  label: approving ? 'Approving…' : 'Approve & release payment',
-                  onClick: handleApprove,
-                  isLoading: approving,
+                  label: 'Approve & release payment',
+                  onClick: () => setShowApproveModal(true),
                 }}
                 secondaryAction={{
                   label: 'Open dispute',
@@ -499,9 +488,17 @@ function BookingDetailsContent() {
               </Card>
             </div>
           </div>
-        </div>
+        </PageShell>
       </main>
       <Footer />
+      {canApproveOrDispute && (
+        <ApprovalRatingModal
+          jobId={jobIdForApi}
+          isOpen={showApproveModal}
+          onClose={() => setShowApproveModal(false)}
+          onApproved={handleApproved}
+        />
+      )}
     </div>
   );
 }

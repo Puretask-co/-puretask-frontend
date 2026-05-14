@@ -19,6 +19,7 @@ import { useToast } from '@/contexts/ToastContext';
 import { cleanerEnhancedService } from '@/services/cleanerEnhanced.service';
 import { cleanerGamificationService } from '@/services/cleanerGamification.service';
 import { jobService } from '@/services/job.service';
+import { markArrived } from '@/services/jobs';
 import { getJobStatusLabel, getJobStatusBadgeClass } from '@/constants';
 import { MapPin, Clock, DollarSign, FileText, Navigation, Target, Camera, MessageSquare, AlertTriangle } from 'lucide-react';
 
@@ -92,8 +93,8 @@ function CleanerJobDetailsContent() {
   });
 
   const { mutate: checkIn, isPending: isCheckingIn } = useMutation({
-    mutationFn: (payload: { lat: number; lng: number; accuracyM?: number }) =>
-      jobService.checkIn(jobId, { ...payload, source: 'device' }),
+    mutationFn: (payload: { latitude: number; longitude: number; accuracy?: number }) =>
+      markArrived(jobId, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['booking', jobId] });
       showToast('Checked in successfully!', 'success');
@@ -120,9 +121,9 @@ function CleanerJobDetailsContent() {
             lng: position.coords.longitude,
           });
           checkIn({
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
-            accuracyM: position.coords.accuracy ?? undefined,
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+            accuracy: position.coords.accuracy ?? undefined,
           });
         },
         () => {

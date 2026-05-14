@@ -69,14 +69,6 @@ export const jobService = {
     return apiClient.post(`/jobs/${jobId}/rate`, { rating, comment });
   },
 
-  // Check-in (cleaner) with location
-  checkIn: async (
-    jobId: string,
-    payload: { lat: number; lng: number; accuracyM?: number; source?: 'device' | 'manual_override' }
-  ): Promise<{ ok: boolean }> => {
-    return apiClient.post(`/jobs/${jobId}/check-in`, payload);
-  },
-
   // Upload before/after photo (cleaner)
   uploadJobPhoto: async (
     jobId: string,

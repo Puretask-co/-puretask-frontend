@@ -38,8 +38,16 @@ export type JobPhotos = {
   after: Array<{ id: string; url: string; createdAt: string }>;
 };
 
+export type GeoLocation = {
+  latitude: number;
+  longitude: number;
+  accuracy?: number;
+  heading?: number;
+  speed?: number;
+};
+
 export async function getJob(jobId: string) {
-  const data = await apiClient.get<Job>(`/api/v1/jobs/${jobId}`);
+  const data = await apiClient.get<Job>(`/jobs/${jobId}`);
   return data as Job;
 }
 
@@ -50,31 +58,59 @@ export async function getJobTimeline(jobId: string) {
 }
 
 export async function getJobPhotos(jobId: string) {
-  const data = await apiClient.get<JobPhotos>(`/api/v1/jobs/${jobId}/photos`);
+  const data = await apiClient.get<JobPhotos>(`/jobs/${jobId}/photos`);
   return data as JobPhotos;
 }
 
-export async function sendEnRoute(jobId: string) {
-  return apiClient.post(`/api/v1/jobs/${jobId}/events/en-route`);
+/** POST /tracking/:jobId/en-route — cleaner only, requires location */
+export async function sendEnRoute(jobId: string, location: GeoLocation) {
+  return apiClient.post(`/tracking/${jobId}/en-route`, { location });
 }
 
-export async function checkIn(jobId: string, coords: { lat: number; lng: number }) {
-  return apiClient.post(`/api/v1/jobs/${jobId}/events/check-in`, coords);
+/**
+ * POST /tracking/:jobId/arrived — cleaner only, marks arrival with GPS.
+ * Note: the backend has a separate `/check-in` route that additionally
+ * requires beforePhotos; that flow is owned by `tracking.service.ts`.
+ */
+export async function markArrived(jobId: string, location: GeoLocation) {
+  return apiClient.post(`/tracking/${jobId}/arrived`, { location });
 }
 
-export async function submitJob(jobId: string) {
-  return apiClient.post(`/api/v1/jobs/${jobId}/events/submit`);
+/**
+ * POST /tracking/:jobId/check-out — cleaner submits the job.
+ * Caller must fetch after-photo URLs first (e.g. via getJobPhotos).
+ */
+export async function submitJob(jobId: string, afterPhotos: string[], notes?: string) {
+  return apiClient.post(`/tracking/${jobId}/check-out`, { afterPhotos, notes });
 }
 
-/** POST /tracking/:jobId/approve — auth + job ownership required */
-export async function approveJob(jobId: string, payload?: { rating?: number; note?: string }) {
-  return apiClient.post(`/tracking/${jobId}/approve`, payload ?? {});
+export type ApproveJobPayload = {
+  /** Star rating, integer 1-5, required by backend */
+  rating: number;
+  /** Optional tip in cents/credits */
+  tip?: number;
+  /** Optional free-text feedback */
+  feedback?: string;
+};
+
+/** POST /tracking/:jobId/approve — client only, auth + job ownership required */
+export async function approveJob(jobId: string, payload: ApproveJobPayload) {
+  return apiClient.post(`/tracking/${jobId}/approve`, payload);
 }
+
+export type DisputeCategory =
+  | 'missed_area'
+  | 'quality_issue'
+  | 'damages_claim'
+  | 'no_show'
+  | 'other';
+
+export type RequestedRefund = 'full' | 'partial' | 'none';
 
 /** POST /tracking/:jobId/dispute — auth + job ownership required */
 export async function openDispute(
   jobId: string,
-  payload: { reason: string; details: string }
+  payload: { reason: string; requestedRefund: RequestedRefund; category?: DisputeCategory }
 ) {
   return apiClient.post(`/tracking/${jobId}/dispute`, payload);
 }

@@ -19,8 +19,6 @@
     "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json,css,md}\""
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.997.0",
-    "@aws-sdk/s3-request-presigner": "^3.997.0",
     "@hookform/resolvers": "^5.2.2",
     "@lottiefiles/dotlottie-web": "^0.63.0",
     "@radix-ui/react-dialog": "^1.1.15",
@@ -32,7 +30,6 @@
     "@react-three/fiber": "^9.5.0",
     "@sentry/nextjs": "^10.39.0",
     "@tanstack/react-query": "^5.90.16",
-    "@types/multer": "^2.0.0",
     "@types/uuid": "^10.0.0",
     "axios": "^1.13.2",
     "class-variance-authority": "^0.7.1",
@@ -43,7 +40,6 @@
     "lucide-react": "^0.562.0",
     "mapbox-gl": "^3.18.1",
     "motion": "^12.34.3",
-    "multer": "^2.0.2",
     "next": "16.1.1",
     "react": "19.2.3",
     "react-dom": "19.2.3",

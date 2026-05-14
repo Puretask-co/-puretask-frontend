@@ -7,7 +7,6 @@ import { GradientButton } from '@/components/brand/GradientButton';
 import { JobTimeline } from '@/components/job/JobTimeline';
 import { BeforeAfterGallery } from '@/components/job/BeforeAfterGallery';
 import {
-  approveJob,
   getJob,
   getJobPhotos,
   getJobTimeline,
@@ -15,6 +14,7 @@ import {
   type TimelineEvent,
 } from '@/services/jobs';
 import { Button } from '@/components/ui/Button';
+import { ApprovalRatingModal } from '@/components/job/ApprovalRatingModal';
 
 export default function ClientJobPage() {
   const { jobId } = useParams<{ jobId: string }>();
@@ -23,7 +23,7 @@ export default function ClientJobPage() {
   const [job, setJob] = useState<Awaited<ReturnType<typeof getJob>> | null>(null);
   const [photos, setPhotos] = useState<JobPhotos | null>(null);
   const [timeline, setTimeline] = useState<TimelineEvent[]>([]);
-  const [busy, setBusy] = useState(false);
+  const [showApproveModal, setShowApproveModal] = useState(false);
 
   useEffect(() => {
     if (!jobId) return;
@@ -37,17 +37,6 @@ export default function ClientJobPage() {
       }
     })();
   }, [jobId]);
-
-  async function approve() {
-    if (!jobId) return;
-    setBusy(true);
-    try {
-      await approveJob(jobId, {});
-      r.push('/client/bookings');
-    } finally {
-      setBusy(false);
-    }
-  }
 
   if (!job) return <div className="text-sm opacity-70">Loading job…</div>;
 
@@ -84,8 +73,8 @@ export default function ClientJobPage() {
           </div>
 
           <div className="flex flex-col gap-3 sm:flex-row">
-            <GradientButton disabled={busy} onClick={approve}>
-              {busy ? 'Approving...' : 'Approve & release funds'}
+            <GradientButton onClick={() => setShowApproveModal(true)}>
+              Approve & release funds
             </GradientButton>
 
             <Button
@@ -107,6 +96,15 @@ export default function ClientJobPage() {
           <p>Check-in/out timestamps, cleaner reliability badge, photo proof count, dispute window reminder.</p>
         </CardContent>
       </Card>
+
+      {jobId && (
+        <ApprovalRatingModal
+          jobId={jobId}
+          isOpen={showApproveModal}
+          onClose={() => setShowApproveModal(false)}
+          onApproved={() => r.push('/client/bookings')}
+        />
+      )}
     </div>
   );
 }
