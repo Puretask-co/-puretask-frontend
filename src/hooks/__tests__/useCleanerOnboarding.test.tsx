@@ -1,7 +1,7 @@
 // src/hooks/__tests__/useCleanerOnboarding.test.tsx
 // Unit tests for useCleanerOnboarding hook
 
-import { describe, it, expect, beforeEach, vi } from '@jest/globals';
+import { describe, it, expect, beforeEach } from '@jest/globals';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
@@ -152,7 +152,7 @@ describe.skip('useCleanerOnboarding', () => {
     });
 
     await act(async () => {
-      await result.current.saveAgreements.mutate({
+      await (result.current.saveAgreements as any).mutate({
         terms_of_service: true,
         independent_contractor: true,
       });
@@ -184,7 +184,7 @@ describe.skip('useCleanerOnboarding', () => {
     });
 
     await act(async () => {
-      await result.current.saveBasicInfo.mutate({
+      await (result.current.saveBasicInfo as any).mutate({
         first_name: 'John',
         last_name: 'Doe',
         bio: 'Experienced cleaner',
@@ -224,7 +224,7 @@ describe.skip('useCleanerOnboarding', () => {
     });
 
     await act(async () => {
-      await result.current.completeOnboarding.mutate();
+      await (result.current.completeOnboarding as any).mutate();
     });
 
     expect(onboardingApi.completeOnboarding).toHaveBeenCalled();

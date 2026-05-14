@@ -179,7 +179,7 @@ describe.skip('AuthContext', () => {
           role: 'client',
           firstName: 'John',
           lastName: 'Doe',
-        });
+        } as any);
       });
 
       expect(result.current.user).toEqual(mockUser);

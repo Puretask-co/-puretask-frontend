@@ -10,7 +10,10 @@ import { Button } from '@/components/ui/Button';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
-import { cleanerGamificationService } from '@/services/cleanerGamification.service';
+import {
+  cleanerGamificationService,
+  type CleanerGoalWithProgress,
+} from '@/services/cleanerGamification.service';
 
 function GoalDetailContent() {
   const params = useParams();
@@ -22,8 +25,8 @@ function GoalDetailContent() {
     enabled: !!goalId,
   });
 
-  const goals = Array.isArray(goalsData) ? goalsData : (goalsData as { goals?: unknown[] })?.goals ?? [];
-  const goal = goals.find((g: { id?: string }) => g.id === goalId);
+  const goals: CleanerGoalWithProgress[] = goalsData ?? [];
+  const goal = goals.find((g) => g.id === goalId);
   const title = goal?.title ?? goal?.type ?? (goalId || 'Goal');
   const current = goal?.current ?? 0;
   const target = (goal?.target ?? 45) as number;

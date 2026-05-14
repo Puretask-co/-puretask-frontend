@@ -104,6 +104,24 @@ function BookingDetailsContent() {
     showToast('Job approved. Payment has been released to the cleaner.', 'success');
   };
 
+  const handleCancelClick = () => setShowCancelConfirm(true);
+  const handleCancelDismiss = () => {
+    setShowCancelConfirm(false);
+    setCancelReason('');
+  };
+  const handleCancelConfirm = () => {
+    cancelBooking(
+      { bookingId, reason: cancelReason.trim() || undefined },
+      {
+        onSuccess: () => {
+          setShowCancelConfirm(false);
+          setCancelReason('');
+          router.push('/client/bookings');
+        },
+      }
+    );
+  };
+
   const showHeldCredits = booking && isEscrowHeld(booking.status);
 
   return (

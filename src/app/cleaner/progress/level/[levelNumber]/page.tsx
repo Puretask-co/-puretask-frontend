@@ -11,7 +11,10 @@ import { GoalChecklist, StretchGoalPicker } from '@/components/gamification';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
-import { cleanerGamificationService } from '@/services/cleanerGamification.service';
+import {
+  cleanerGamificationService,
+  type CleanerGoalWithProgress,
+} from '@/services/cleanerGamification.service';
 
 function LevelDetailContent() {
   const params = useParams();
@@ -22,9 +25,9 @@ function LevelDetailContent() {
     queryFn: () => cleanerGamificationService.getGoals(),
   });
 
-  const goals = Array.isArray(goalsData) ? goalsData : (goalsData as { goals?: unknown[] })?.goals ?? [];
-  const coreGoals = goals.filter((g: { type?: string }) => g.type === 'core' || !g.type);
-  const stretchGoals = goals.filter((g: { type?: string }) => g.type === 'stretch');
+  const goals: CleanerGoalWithProgress[] = goalsData ?? [];
+  const coreGoals = goals.filter((g) => g.type === 'core' || !g.type);
+  const stretchGoals = goals.filter((g) => g.type === 'stretch');
   const checklistGoals = coreGoals.map((g) => ({
     id: g.id,
     title: g.title ?? g.type ?? g.id,

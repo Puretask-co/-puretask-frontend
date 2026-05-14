@@ -211,7 +211,6 @@ function CleanerDashboardContent() {
                           <div
                             className="h-2 rounded-full"
                             style={{ width: '60%', backgroundColor: 'var(--brand-blue)' }}
-                            style={{ width: '60%' }} // Would calculate actual progress
                           />
                         </div>
                         <p className="text-xs text-gray-500 mt-1">60% complete</p>

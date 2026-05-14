@@ -11,13 +11,18 @@ const mockUser = {
   id: 'user-123',
   email: 'test@example.com',
   role: 'client' as const,
+  created_at: '2024-01-01T00:00:00Z',
+  email_verified: true,
 };
 
 const mockAuthValue = {
   user: mockUser,
   login: jest.fn(),
   logout: jest.fn(),
+  register: jest.fn(),
+  refreshUser: jest.fn(),
   isLoading: false,
+  isAuthenticated: true,
 };
 
 // TODO: Fix Header tests (AuthContext/nav structure) - TODOS.md

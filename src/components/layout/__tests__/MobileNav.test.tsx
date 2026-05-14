@@ -13,10 +13,15 @@ const mockClientAuth = {
     id: 'user-123',
     email: 'client@example.com',
     role: 'client' as const,
+    created_at: '2024-01-01T00:00:00Z',
+    email_verified: true,
   },
   login: jest.fn(),
   logout: mockLogout,
+  register: jest.fn(),
+  refreshUser: jest.fn(),
   isLoading: false,
+  isAuthenticated: true,
 };
 
 const mockCleanerAuth = {
@@ -24,10 +29,15 @@ const mockCleanerAuth = {
     id: 'cleaner-123',
     email: 'cleaner@example.com',
     role: 'cleaner' as const,
+    created_at: '2024-01-01T00:00:00Z',
+    email_verified: true,
   },
   login: jest.fn(),
   logout: mockLogout,
+  register: jest.fn(),
+  refreshUser: jest.fn(),
   isLoading: false,
+  isAuthenticated: true,
 };
 
 describe('MobileNav', () => {

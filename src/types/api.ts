@@ -29,11 +29,13 @@ export interface AuthResponse {
 }
 
 // Job/Booking types
+import type { JobStatusValue } from '@/constants/jobStatus';
+
 export interface Job {
   id: string;
   client_id: string;
   cleaner_id?: string;
-  status: 'pending' | 'accepted' | 'in_progress' | 'completed' | 'cancelled';
+  status: JobStatusValue;
   scheduled_start_at: string;
   scheduled_end_at: string;
   address: string;

@@ -38,7 +38,7 @@ describe.skip('ErrorBoundary', () => {
 
   it('logs error in development mode', () => {
     const originalEnv = process.env.NODE_ENV;
-    process.env.NODE_ENV = 'development';
+    (process.env as Record<string, string | undefined>).NODE_ENV = 'development';
 
     render(
       <ErrorBoundary>
@@ -48,7 +48,7 @@ describe.skip('ErrorBoundary', () => {
 
     expect(console.error).toHaveBeenCalled();
 
-    process.env.NODE_ENV = originalEnv;
+    (process.env as Record<string, string | undefined>).NODE_ENV = originalEnv;
   });
 
   it('shows retry button', () => {

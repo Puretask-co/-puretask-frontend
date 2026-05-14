@@ -1,7 +1,7 @@
 // src/lib/__tests__/api.test.ts
 // Unit tests for API client (axios interceptors)
 
-import { describe, it, expect, beforeEach, vi } from '@jest/globals';
+import { describe, it, expect, beforeEach } from '@jest/globals';
 
 // Mock axios before importing api
 jest.mock('axios', () => ({

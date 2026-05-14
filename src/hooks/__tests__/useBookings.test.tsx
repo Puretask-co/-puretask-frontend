@@ -1,7 +1,7 @@
 // src/hooks/__tests__/useBookings.test.tsx
 // Unit tests for useBookings hooks
 
-import { describe, it, expect, beforeEach, vi } from '@jest/globals';
+import { describe, it, expect, beforeEach } from '@jest/globals';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
@@ -55,7 +55,7 @@ describe.skip('useBookings hooks', () => {
         expect(result.current.isSuccess).toBe(true);
       });
 
-      expect(result.current.data?.data).toEqual(mockBookings);
+      expect((result.current.data as any)?.data).toEqual(mockBookings);
     });
 
     it('filters bookings by status', async () => {
@@ -67,14 +67,14 @@ describe.skip('useBookings hooks', () => {
         data: mockBookings,
       });
 
-      const { result } = renderHook(() => useBookings('pending'), { wrapper });
+      const { result } = renderHook(() => useBookings('pending' as any), { wrapper });
 
       await waitFor(() => {
         expect(result.current.isSuccess).toBe(true);
       });
 
       expect(bookingService.bookingService.getMyBookings).toHaveBeenCalledWith({
-        status: 'pending',
+        status: 'pending' as any,
       });
     });
   });
@@ -126,7 +126,7 @@ describe.skip('useBookings hooks', () => {
           date: '2026-01-25',
           time: '14:00',
           addressId: 'addr-123',
-        });
+        } as any);
       });
 
       expect(bookingService.bookingService.createBooking).toHaveBeenCalled();
@@ -147,7 +147,7 @@ describe.skip('useBookings hooks', () => {
           date: '2026-01-25',
           time: '14:00',
           addressId: 'addr-123',
-        });
+        } as any);
       });
 
       expect(result.current.isError).toBe(true);

@@ -38,7 +38,9 @@ export default function CleanerProfilePage() {
   });
 
   // Support both { cleaner } and { data } response shapes from API
-  const cleaner = cleanerData?.cleaner ?? (cleanerData as { data?: typeof cleanerData.cleaner })?.data;
+  const cleaner =
+    cleanerData?.cleaner ??
+    (cleanerData as { data?: NonNullable<typeof cleanerData>['cleaner'] } | undefined)?.data;
 
   if (loadingCleaner) {
     return <Loading size="lg" text="Loading cleaner profile..." fullScreen />;
